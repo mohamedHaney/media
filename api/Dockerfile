@@ -15,4 +15,4 @@ COPY . .
 EXPOSE 3000
 
 # Define the entry point for the container
-CMD ["node", "api/index.js"]
+CMD ["node", "/index.js"]
