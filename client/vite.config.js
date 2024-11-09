@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://media-7uaktf3g.b4a.run',
+        target: import.meta.env.SERVER_DOMAIN,
         secure: false,
       },
     },
