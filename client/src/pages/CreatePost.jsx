@@ -67,7 +67,7 @@ export default function CreatePost() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`https://media-one-rust.vercel.app/api/post/create`, {
+      const res = await fetch(`https://mdia1-3pokryme.b4a.run/api/post/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

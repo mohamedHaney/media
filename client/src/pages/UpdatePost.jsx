@@ -29,7 +29,7 @@ export default function UpdatePost() {
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const res = await fetch(`https://media-one-rust.vercel.app/api/post/getposts?postId=${postId}`);
+        const res = await fetch(`https://mdia1-3pokryme.b4a.run/api/post/getposts?postId=${postId}`);
         const data = await res.json();
         if (!res.ok) {
           console.error(data.message);
@@ -95,7 +95,7 @@ export default function UpdatePost() {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`https://media-one-rust.vercel.app/api/post/updatepost/${formData?._id}/${currentUser?._id}`, {
+      const res = await fetch(`https://mdia1-3pokryme.b4a.run/api/post/updatepost/${formData?._id}/${currentUser?._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
