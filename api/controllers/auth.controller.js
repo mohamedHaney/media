@@ -45,7 +45,12 @@ export const signin = async (req, res, next) => {
     );
 
     const { password: pass, ...rest } = validUser._doc;
-    res.cookie("access_token", token, { httpOnly: true }).status(200).json(rest);
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: true, // Cookie is sent only over HTTPS
+      sameSite: "None", // Allows cookie to be sent across different domains
+    }).status(200).json(rest);
+    
   } catch (error) {
     next(error);
   }
@@ -81,7 +86,12 @@ export const google = async (req, res, next) => {
     );
 
     const { password, ...rest } = user._doc;
-    res.cookie("access_token", token, { httpOnly: true }).status(200).json(rest);
+    res.cookie("access_token", token, {
+      httpOnly: true,
+      secure: true, // Cookie is sent only over HTTPS
+      sameSite: "None", // Allows cookie to be sent across different domains
+    }).status(200).json(rest);
+    
   } catch (error) {
     next(error);
   }
