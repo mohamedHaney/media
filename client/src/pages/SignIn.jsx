@@ -24,7 +24,7 @@ export default function SignIn() {
     }
     try {
       dispatch(signInStart());
-      const res = await fetch(`https://mdia1-3pokryme.b4a.run/api/auth/signin`, {
+      const res = await fetch(`https://media-one-rust.vercel.app/api/auth/signin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

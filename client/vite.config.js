@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: "https://mdia1-3pokryme.b4a.run",
+        target: "https://media-one-rust.vercel.app",
         secure: false,
       },
     },

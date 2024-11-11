@@ -26,7 +26,7 @@ export default function Header() {
 
   const handleSignout = async () => {
     try {
-      const res = await fetch(`https://mdia1-3pokryme.b4a.run/api/user/signout`, {
+      const res = await fetch(`https://media-one-rust.vercel.app/api/user/signout`, {
         method: 'POST',
       });
       const data = await res.json();

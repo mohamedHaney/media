@@ -15,7 +15,7 @@ export default function OAuth() {
         provider.setCustomParameters({ prompt: 'select_account' })
         try {
             const resultsFromGoogle = await signInWithPopup(auth, provider)
-            const res = await fetch(`https://mdia1-3pokryme.b4a.run/api/auth/google`, {
+            const res = await fetch(`https://media-one-rust.vercel.app/api/auth/google`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

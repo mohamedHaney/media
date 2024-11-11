@@ -19,7 +19,7 @@ export default function SignUp() {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const res = await fetch(`https://mdia1-3pokryme.b4a.run/api/auth/signup`, {
+      const res = await fetch(`https://media-one-rust.vercel.app/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
