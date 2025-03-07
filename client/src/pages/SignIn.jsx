@@ -53,7 +53,7 @@ export default function SignIn() {
               </span>
           </Link>
           <p className='text-sm mt-5'>
-          مرحبًا بكم في رحلة الاعلام عبر الزمان
+          مرحبًا بكم في صقور المحاجر
           </p>
         </div>
         {/* right */}
