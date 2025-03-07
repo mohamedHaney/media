@@ -52,7 +52,7 @@ export default function Home() {
         </Swiper>
         <div className="relative flex flex-col text-center text-white px-8 w-full">
           <h1 className="lg:text-6xl text-1xl font-bold transform transition-transform duration-300 hover:scale-105 mt-12">
-            مرحبًا بكم في رحلة الإعلام عبر الزمان
+            مرحبًا بكم في صقور المحاجر 
           </h1>
           <div className="w-full flex justify-between items-start mt-4 text-gray-100">
             <p className="hidden sm:block text-sm leading-relaxed max-width text-right">
