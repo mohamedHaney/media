@@ -11,7 +11,7 @@ export default function FooterCom() {
             <div className="mb-6 md:mb-0">
                 <Link href="/" className="flex items-center">
                     <span className="px-2 py-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-lg text-white">
-                        {"رحلة الإعلام عبر الزمان"}
+                        {"صقور المحاجر"}
                     </span>
                     <span className="ml-2 text-lg sm:text-xl font-semibold whitespace-nowrap dark:text-white">
                     </span>
@@ -25,7 +25,7 @@ export default function FooterCom() {
                             <Link to="/our-vision" target="_self" rel="noopener noreferrer" className="hover:underline">رؤيتنا</Link>
                         </li>
                         <li>
-                            <Link to="/about" target="_self" rel="noopener noreferrer" className="hover:underline">رحلة الإعلام عبر الزمان</Link>
+                            <Link to="/about" target="_self" rel="noopener noreferrer" className="hover:underline">صقور المحاجر</Link>
                         </li>
                     </ul>
                 </div>
@@ -55,7 +55,7 @@ export default function FooterCom() {
         </div>
         <hr className="my-6 border-gray-200 sm:mx-auto dark:border-gray-700 lg:my-8" />
         <div className="sm:flex sm:items-center sm:justify-between">
-        <span className="text-sm text-gray-500 sm:text-center dark:text-gray-400"><Link href="#" className="hover:underline">رحلة الإعلام عبر الزمان</Link> جميع الحقوق محفوظة© 2025 </span>
+        <span className="text-sm text-gray-500 sm:text-center dark:text-gray-400"><Link href="#" className="hover:underline">صقور المحاجر</Link> جميع الحقوق محفوظة© 2025 </span>
         <div className="flex gap-6 sm:mt-0 mt-4 sm:justify-center">
             <Footer.Icon href='#' icon={BsFacebook}/>
             <Footer.Icon href='#' icon={BsInstagram}/>
