@@ -128,27 +128,30 @@ export default function DashboardComp() {
               <Link to={'/dashboard?tab=users'}>مشاهدة الكل</Link>
             </Button>
           </div>
-          <Table hoverable>
-            <Table.Head>
-              <Table.HeadCell>صورة المستخدم</Table.HeadCell>
-              <Table.HeadCell>اسم المستخدم</Table.HeadCell>
-            </Table.Head>
-            {users &&
-              users.map((user) => (
-                <Table.Body key={user._id} className='divide-y'>
-                  <Table.Row className='bg-white dark:border-gray-700 dark:bg-gray-800'>
-                    <Table.Cell>
-                      <img
-                        src={user.profilePicture}
-                        alt='user'
-                        className='w-10 h-10 rounded-full bg-gray-500'
-                      />
-                    </Table.Cell>
-                    <Table.Cell>{user.username}</Table.Cell>
-                  </Table.Row>
-                </Table.Body>
-              ))}
-          </Table>
+<Table hoverable className="w-full border shadow-md rounded-lg overflow-hidden" dir="rtl">
+  <Table.Head className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white">
+    <Table.HeadCell className="p-3 text-right">صورة المستخدم</Table.HeadCell>
+    <Table.HeadCell className="p-3 text-right">اسم المستخدم</Table.HeadCell>
+  </Table.Head>
+  {users &&
+    users.map((user) => (
+      <Table.Body key={user._id} className="divide-y dark:divide-gray-600">
+        <Table.Row className="bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+          <Table.Cell className="p-3">
+            <img
+              src={user.profilePicture}
+              alt="user"
+              className="w-12 h-12 rounded-full bg-gray-300 border border-gray-400"
+            />
+          </Table.Cell>
+          <Table.Cell className="p-3 text-right font-semibold text-gray-800 dark:text-gray-200">
+            {user.username}
+          </Table.Cell>
+        </Table.Row>
+      </Table.Body>
+    ))}
+</Table>
+
         </div>
         <div className='flex flex-col w-full md:w-auto shadow-md p-2 rounded-md dark:bg-gray-800'>
           <div className='flex justify-between  p-3 text-sm font-semibold'>
