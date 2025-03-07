@@ -67,7 +67,7 @@ export default function DashboardComp() {
     }
   }, [currentUser]);
   return (
-    <div className='p-3 md:mx-auto text-right' dir='rtl'>
+    <div className='p-3 md:mx-auto'>
       <div className='flex-wrap flex gap-4 justify-center'>
         <div className='flex flex-col p-3 dark:bg-slate-800 gap-4 md:w-72 w-full rounded-md shadow-md'>
           <div className='flex justify-between'>
@@ -88,7 +88,9 @@ export default function DashboardComp() {
         <div className='flex flex-col p-3 dark:bg-slate-800 gap-4 md:w-72 w-full rounded-md shadow-md'>
           <div className='flex justify-between'>
             <div className=''>
-              <h3 className='text-gray-500 text-md uppercase'>عدد التعليقات</h3>
+              <h3 className='text-gray-500 text-md uppercase'>
+                عدد التعليقات
+              </h3>
               <p className='text-2xl'>{totalComments}</p>
             </div>
             <HiAnnotation className='bg-indigo-600  text-white rounded-full text-5xl p-3 shadow-lg' />
@@ -116,6 +118,108 @@ export default function DashboardComp() {
             </span>
             <div className='text-gray-500'>الشهر الماضي</div>
           </div>
+        </div>
+      </div>
+      <div className='flex flex-wrap gap-4 py-3 mx-auto justify-center'>
+        <div className='flex flex-col w-full md:w-auto shadow-md p-2 rounded-md dark:bg-gray-800'>
+          <div className='flex justify-between  p-3 text-sm font-semibold'>
+            <h1 className='text-center p-2'>المستخدمين الجدد</h1>
+            <Button outline gradientDuoTone='purpleToPink'>
+              <Link to={'/dashboard?tab=users'}>مشاهدة الكل</Link>
+            </Button>
+          </div>
+          <Table hoverable>
+            <Table.Head>
+              <Table.HeadCell>صورة المستخدم</Table.HeadCell>
+              <Table.HeadCell>اسم المستخدم</Table.HeadCell>
+            </Table.Head>
+            {users &&
+              users.map((user) => (
+                <Table.Body key={user._id} className='divide-y'>
+                  <Table.Row className='bg-white dark:border-gray-700 dark:bg-gray-800'>
+                    <Table.Cell>
+                      <img
+                        src={user.profilePicture}
+                        alt='user'
+                        className='w-10 h-10 rounded-full bg-gray-500'
+                      />
+                    </Table.Cell>
+                    <Table.Cell>{user.username}</Table.Cell>
+                  </Table.Row>
+                </Table.Body>
+              ))}
+          </Table>
+        </div>
+        <div className='flex flex-col w-full md:w-auto shadow-md p-2 rounded-md dark:bg-gray-800'>
+          <div className='flex justify-between  p-3 text-sm font-semibold'>
+            <h1 className='text-center p-2'>التعليقات الجديدة</h1>
+            <Button outline gradientDuoTone='purpleToPink'>
+              <Link to={'/dashboard?tab=comments'}>مشاهدة الكل</Link>
+            </Button>
+          </div>
+          <Table hoverable>
+            <Table.Head>
+              <Table.HeadCell>محتوي التعليق</Table.HeadCell>
+              <Table.HeadCell>الإعجابات</Table.HeadCell>
+            </Table.Head>
+            {comments &&
+              comments.map((comment) => (
+                <Table.Body key={comment._id} className='divide-y'>
+                  <Table.Row className='bg-white dark:border-gray-700 dark:bg-gray-800'>
+                    <Table.Cell className='w-96'>
+                        <p className='line-clamp-2'>{comment.content}</p>
+                    </Table.Cell>
+                    <Table.Cell>{comment.numberOfLikes}</Table.Cell>
+                  </Table.Row>
+                </Table.Body>
+              ))}
+          </Table>
+        </div>
+        <div className='flex flex-col w-full md:w-auto shadow-md p-2 rounded-md dark:bg-gray-800'>
+          <div className='flex justify-between  p-3 text-sm font-semibold'>
+            <h1 className='text-center p-2'>المواضيع الجديدة</h1>
+            <Button outline gradientDuoTone='purpleToPink'>
+              <Link to={'/dashboard?tab=posts'}>مشاهدة الكل</Link>
+            </Button>
+          </div>
+          <Table hoverable>
+            <Table.Head>
+              <Table.HeadCell>محتوي الموضوع</Table.HeadCell>
+              <Table.HeadCell>عنوان الموضوع</Table.HeadCell>
+              <Table.HeadCell>التصنيف</Table.HeadCell>
+            </Table.Head>
+            {posts &&
+              posts.map((post) => (
+                <Table.Body key={post._id} className='divide-y'>
+                  <Table.Row className='bg-white dark:border-gray-700 dark:bg-gray-800'>
+                  <Table.Cell>
+  <Link to={`/post/${post.slug}`}>
+    {post.video ? (
+      <video
+        src={post.video}
+        className='w-14 h-10 rounded-md'
+        onMouseOver={(e) => e.target.play()}
+        onMouseOut={(e) => {
+          e.target.pause();
+          e.target.currentTime = 0; // Reset video to the start
+        }}
+        muted
+      />
+    ) : (
+      <img
+        src={post.image}
+        alt={post.title}
+        className='w-14 h-10 rounded-md'
+      />
+    )}
+  </Link>
+</Table.Cell>
+                    <Table.Cell className='w-96'>{post.title}</Table.Cell>
+                    <Table.Cell className='w-5'>{post.category}</Table.Cell>
+                  </Table.Row>
+                </Table.Body>
+              ))}
+          </Table>
         </div>
       </div>
     </div>
