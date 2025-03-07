@@ -57,7 +57,7 @@ export default function FooterCom() {
         <div className="sm:flex sm:items-center sm:justify-between">
         <span className="text-sm text-gray-500 sm:text-center dark:text-gray-400"><Link href="#" className="hover:underline">صقور المحاجر</Link> جميع الحقوق محفوظة© 2025 </span>
         <div className="flex gap-6 sm:mt-0 mt-4 sm:justify-center">
-            <Footer.Icon href='#' icon={BsFacebook}/>
+            <Footer.Icon href='https://www.facebook.com/profile.php?id=61573389843203&locale=ar_AR' icon={BsFacebook}/>
             <Footer.Icon href='#' icon={BsInstagram}/>
             <Footer.Icon href='#' icon={BsTwitter}/>
             <Footer.Icon href='#' icon={BsGithub}/>
