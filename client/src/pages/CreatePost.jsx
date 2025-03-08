@@ -105,7 +105,7 @@ export default function CreatePost() {
               setFormData({ ...formData, title: e.target.value })
             }
           />
-          <Select
+{/*           <Select
             onChange={(e) =>
               setFormData({ ...formData, category: e.target.value })
             }
@@ -113,7 +113,7 @@ export default function CreatePost() {
             <option value='أختر فئة'>أختر فئة</option>
             <option value='الإذاعة و التليفزيون'>الإذاعة و التليفزيون</option>
             <option value='الصحافة'>الصحافة</option>
-          </Select>
+          </Select> */}
         </div>
         <div className='flex gap-4 items-center justify-between border-4 border-teal-500 border-dotted p-3'>
           <FileInput
