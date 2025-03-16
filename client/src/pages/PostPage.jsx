@@ -97,7 +97,7 @@ export default function PostPage() {
       <CommentSection postId={post._id} />
 
       <div className='flex flex-col items-center w-full mt-10 mb-5'>
-        <h2 className='text-xl'>مقالات أخرى</h2>
+        <h2 className='text-xl'> مقالات أخرى </h2>
         <div className='flex flex-wrap gap-5 mt-5 justify-center'>
           {recentPosts &&
             recentPosts.map((post) => <PostCard key={post._id} post={post} />)}
