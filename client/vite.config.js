@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: "https://media-one-rust.vercel.app",
+        target: "https://media-ojwb.vercel.app",
         secure: false,
       },
     },
