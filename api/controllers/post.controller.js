@@ -3,7 +3,21 @@ import { errorHandler } from '../utils/error.js';
 
 // Function to generate a unique slug for each post
 const createUniqueSlug = async (title) => {
-  let slug = title.split(' ').join('-').toLowerCase().replace(/[^a-zA-Z0-9-]/g, '');
+  if (!title || typeof title !== "string") {
+    return `post-${Date.now()}`; // Fallback for empty or invalid titles
+  }
+
+  let slug = title
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-") // Replace multiple spaces with a single dash
+    .replace(/[^a-z0-9-]/g, "") // Remove special characters except dashes
+    .replace(/-+/g, "-"); // Remove multiple consecutive dashes
+
+  if (!slug) {
+    slug = `post-${Date.now()}`; // Ensure a valid slug if all characters were removed
+  }
+
   let uniqueSlug = slug;
   let counter = 1;
 
