@@ -1,18 +1,19 @@
 import Post from '../models/post.model.js';
 import { errorHandler } from '../utils/error.js';
+import slugify from "slugify"; // Ensure slugify is installed
 
-// Function to generate a unique slug for each post
+// Function to generate a unique slug for each post (supports Arabic)
 const createUniqueSlug = async (title) => {
   if (!title || typeof title !== "string") {
     return `post-${Date.now()}`; // Fallback for empty or invalid titles
   }
 
-  let slug = title
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-") // Replace multiple spaces with a single dash
-    .replace(/[^a-z0-9-]/g, "") // Remove special characters except dashes
-    .replace(/-+/g, "-"); // Remove multiple consecutive dashes
+  // Generate a slug that supports Arabic and English
+  let slug = slugify(title, {
+    lower: true, // Convert to lowercase
+    strict: true, // Remove special characters
+    locale: "ar", // Arabic support
+  });
 
   if (!slug) {
     slug = `post-${Date.now()}`; // Ensure a valid slug if all characters were removed
@@ -37,15 +38,14 @@ export const create = async (req, res, next) => {
   if (!req.body.title || !req.body.content) {
     return next(errorHandler(400, 'برجاء التأكد من ملئ كل الحقول'));
   }
-
+  
   const slug = await createUniqueSlug(req.body.title);
-
   const newPost = new Post({
     ...req.body,
     slug,
     userId: req.user.id,
     image: req.body.image || 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png',
-    video: req.body.video || null, // Ensure video is explicitly set
+    video: req.body.video || null,
   });
 
   try {
@@ -55,7 +55,6 @@ export const create = async (req, res, next) => {
     next(error);
   }
 };
-
 
 // Get posts with filters and pagination
 export const getposts = async (req, res, next) => {
@@ -120,6 +119,7 @@ export const updatepost = async (req, res, next) => {
       content: req.body.content,
       category: req.body.category,
       image: req.body.image,
+      video: req.body.video,
     };
 
     // Generate a new slug if the title has changed
