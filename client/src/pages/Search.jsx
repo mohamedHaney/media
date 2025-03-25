@@ -129,8 +129,10 @@ export default function Search() {
             <select onChange={handleChange} value={sidebarData.category} id='category'
             className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
               <option value='غير مصنف'>غير مصنف</option>
-              <option value='الإذاعة و التليفزيون'>الإذاعة و التليفزيون</option>
-              <option value='الصحافة'>الصحافة</option>
+              <option value='قصص وتجارب شخصية'>قصص وتجارب شخصية</option>
+              <option value='التقارير والدراسات'>التقارير والدراسات
+
+</option>
               </select>
           </div>
           <Button type='submit' outline gradientDuoTone='purpleToPink'>
