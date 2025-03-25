@@ -1,19 +1,20 @@
 import Post from '../models/post.model.js';
 import { errorHandler } from '../utils/error.js';
-import slugify from "slugify"; // Ensure slugify is installed
 
-// Function to generate a unique slug for each post (supports Arabic)
+// Function to generate a unique slug for each post
 const createUniqueSlug = async (title) => {
   if (!title || typeof title !== "string") {
     return `post-${Date.now()}`; // Fallback for empty or invalid titles
   }
 
-  // Generate a slug that supports Arabic and English
-  let slug = slugify(title, {
-    lower: true, // Convert to lowercase
-    strict: true, // Remove special characters
-    locale: "ar", // Arabic support
-  });
+  // Convert title to a slug while preserving Arabic and English text
+  let slug = title
+    .normalize("NFD") // Normalize Unicode (important for Arabic)
+    .replace(/[\u064B-\u065F]/g, "") // Remove Arabic diacritics (optional)
+    .replace(/\s+/g, "-") // Convert spaces to dashes
+    .replace(/[^a-zA-Z0-9\u0600-\u06FF-]/g, "") // Keep English, Arabic, numbers, and dashes
+    .replace(/-+/g, "-") // Remove multiple consecutive dashes
+    .toLowerCase(); // Convert to lowercase
 
   if (!slug) {
     slug = `post-${Date.now()}`; // Ensure a valid slug if all characters were removed
@@ -44,8 +45,6 @@ export const create = async (req, res, next) => {
     ...req.body,
     slug,
     userId: req.user.id,
-    image: req.body.image || 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png',
-    video: req.body.video || null,
   });
 
   try {
@@ -119,7 +118,7 @@ export const updatepost = async (req, res, next) => {
       content: req.body.content,
       category: req.body.category,
       image: req.body.image,
-      video: req.body.video,
+      video: req.body.video, // Ensure video updates properly
     };
 
     // Generate a new slug if the title has changed
