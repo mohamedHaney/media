@@ -111,8 +111,10 @@ export default function CreatePost() {
             }
           >
             <option value='أختر فئة'>أختر فئة</option>
-            <option value='الإذاعة و التليفزيون'>الإذاعة و التليفزيون</option>
-            <option value='الصحافة'>الصحافة</option>
+            <option value='المقالات التحليلية'>المقالات التحليلية</option>
+            <option value='التقارير والدراسات'>التقارير والدراسات
+
+</option>
           </Select>
         </div>
         <div className='flex gap-4 items-center justify-between border-4 border-teal-500 border-dotted p-3'>
