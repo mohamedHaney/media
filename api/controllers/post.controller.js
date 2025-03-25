@@ -37,12 +37,15 @@ export const create = async (req, res, next) => {
   if (!req.body.title || !req.body.content) {
     return next(errorHandler(400, 'برجاء التأكد من ملئ كل الحقول'));
   }
-  
+
   const slug = await createUniqueSlug(req.body.title);
+
   const newPost = new Post({
     ...req.body,
     slug,
     userId: req.user.id,
+    image: req.body.image || 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png',
+    video: req.body.video || null, // Ensure video is explicitly set
   });
 
   try {
@@ -52,6 +55,7 @@ export const create = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // Get posts with filters and pagination
 export const getposts = async (req, res, next) => {
