@@ -47,12 +47,12 @@ export default function UpdatePost() {
   const handleUploadMedia = async () => {
     try {
       if (!file) {
-        setUploadError('Please select a file');
+        setUploadError('الرجاء تحديد الملف المراد رفعه');
         return;
       }
       const fileType = file.type.split('/')[0];
       if (fileType !== 'image' && fileType !== 'video') {
-        setUploadError('Please upload a valid image or video file');
+        setUploadError('الرجاء رفع ملف صورة أو فيديو صالح');
         return;
       }
 
