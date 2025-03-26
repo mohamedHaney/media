@@ -25,7 +25,7 @@ export default function CreatePost() {
   const handleUploadMedia = async () => {
     try {
       if (!file) {
-        setUploadError('Please select a file');
+        setUploadError('الرجاء تحديد الملف المراد رفعه');
         return;
       }
       setUploadError(null);
