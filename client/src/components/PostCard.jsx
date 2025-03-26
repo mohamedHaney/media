@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom';
 
-
-
-
 export default function PostCard({ post }) {
+  // Get the first image if available, or use default if none exists
+  const displayImage = post.images?.[0] || post.image || 'default-image-url.jpg';
   
   return (
     <Link
@@ -23,13 +22,15 @@ export default function PostCard({ post }) {
             }}
             alt='post cover'
             className='h-[230px] w-full object-cover group-hover:h-[200px] transition-all duration-300 z-20'
-            // controls // Add controls if desired
           />
         ) : (
           <img
-            src={post.image}
+            src={displayImage}
             alt='post cover'
             className='h-[230px] w-full object-cover group-hover:h-[200px] transition-all duration-300 z-20'
+            onError={(e) => {
+              e.target.src = 'default-image-url.jpg'; // Fallback if image fails to load
+            }}
           />
         )}
       </div>
