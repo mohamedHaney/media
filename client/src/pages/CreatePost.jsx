@@ -14,51 +14,75 @@ import 'react-circular-progressbar/dist/styles.css';
 import { useNavigate } from 'react-router-dom';
 
 export default function CreatePost() {
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [uploadError, setUploadError] = useState(null);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState({ images: [] });
   const [publishError, setPublishError] = useState(null);
+  const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
 
   const navigate = useNavigate();
 
   const handleUploadMedia = async () => {
     try {
-      if (!file) {
-        setUploadError('الرجاء تحديد الملف المراد رفعه');
+      if (!files || files.length === 0) {
+        setUploadError('الرجاء تحديد ملفات للرفع');
         return;
       }
+      
       setUploadError(null);
       const storage = getStorage(app);
-      const fileName = new Date().getTime() + '-' + file.name;
-      const storageRef = ref(storage, fileName);
-      const uploadTask = uploadBytesResumable(storageRef, file);
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress =
-            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setUploadProgress(progress.toFixed(0));
-        },
-        (error) => {
-          setUploadError('File upload failed');
+      
+      // Process files sequentially
+      const uploadNextFile = async (index) => {
+        if (index >= files.length) {
           setUploadProgress(null);
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            setUploadProgress(null);
-            setUploadError(null);
-            // Store either image or video URL in formData
-            if (file.type.startsWith('image/')) {
-              setFormData({ ...formData, image: downloadURL });
-            } else if (file.type.startsWith('video/')) {
-              setFormData({ ...formData, video: downloadURL });
-            }
-          });
+          return;
         }
-      );
+
+        const file = files[index];
+        setCurrentUploadIndex(index);
+        const fileName = new Date().getTime() + '-' + file.name;
+        const storageRef = ref(storage, fileName);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress =
+              (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setUploadProgress(progress.toFixed(0));
+          },
+          (error) => {
+            setUploadError('فشل رفع الملف');
+            setUploadProgress(null);
+          },
+          async () => {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            
+            if (file.type.startsWith('image/')) {
+              setFormData(prev => ({
+                ...prev,
+                images: [...prev.images, downloadURL]
+              }));
+            } else if (file.type.startsWith('video/')) {
+              // Only allow one video per post
+              setFormData(prev => ({
+                ...prev,
+                video: downloadURL,
+                images: prev.images // Keep existing images
+              }));
+            }
+            
+            // Upload next file
+            uploadNextFile(index + 1);
+          }
+        );
+      };
+
+      uploadNextFile(0);
     } catch (error) {
-      setUploadError('File upload failed');
+      setUploadError('فشل رفع الملف');
       setUploadProgress(null);
       console.log(error);
     }
@@ -67,13 +91,13 @@ export default function CreatePost() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`/api/post/create`, {
+      const res = await fetch('/api/post/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
-        credentials: 'include', // Important: ensures cookies are sent with the request
+        credentials: 'include',
       });
       const data = await res.json();
       if (!res.ok) {
@@ -86,8 +110,15 @@ export default function CreatePost() {
         navigate(`/post/${data.slug}`);
       }
     } catch (error) {
-      setPublishError('Something went wrong');
+      setPublishError('حدث خطأ ما');
     }
+  };
+
+  const handleRemoveImage = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
   };
 
   return (
@@ -97,7 +128,7 @@ export default function CreatePost() {
         <div className='flex flex-col gap-4 sm:flex-row justify-between'>
           <TextInput
             type='text'
-            placeholder='Title'
+            placeholder='العنوان'
             required
             id='title'
             className='flex-1'
@@ -112,16 +143,16 @@ export default function CreatePost() {
           >
             <option value='أختر فئة'>أختر فئة</option>
             <option value='المقالات التحليلية'>المقالات التحليلية</option>
-            <option value='التقارير والدراسات'>التقارير والدراسات
-
-</option>
+            <option value='التقارير والدراسات'>التقارير والدراسات</option>
           </Select>
         </div>
+
         <div className='flex gap-4 items-center justify-between border-4 border-teal-500 border-dotted p-3'>
           <FileInput
             type='file'
             accept='image/*,video/*'
-            onChange={(e) => setFile(e.target.files[0])}
+            multiple
+            onChange={(e) => setFiles(Array.from(e.target.files))}
           />
           <Button
             type='button'
@@ -137,27 +168,56 @@ export default function CreatePost() {
                   value={uploadProgress}
                   text={`${uploadProgress || 0}%`}
                 />
+                <span className='text-xs mt-1'>
+                  {currentUploadIndex + 1}/{files.length}
+                </span>
               </div>
             ) : (
-              'تحميل الوسائط'
+              'رفع الوسائط'
             )}
           </Button>
         </div>
+
         {uploadError && <Alert color='failure'>{uploadError}</Alert>}
-        {formData.image && (
-          <img
-            src={formData.image}
-            alt='upload'
-            className='w-full h-72 object-cover'
-          />
-        )}
+
+        {/* Display uploaded images */}
+        <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4'>
+          {formData.images?.map((image, index) => (
+            <div key={index} className='relative group'>
+              <img
+                src={image}
+                alt={`upload-${index}`}
+                className='w-full h-40 object-cover rounded-lg'
+              />
+              <button
+                type='button'
+                onClick={() => handleRemoveImage(index)}
+                className='absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity'
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Display video if exists */}
         {formData.video && (
-          <video
-            src={formData.video}
-            controls
-            className='w-full h-72 object-cover'
-          />
+          <div className='relative'>
+            <video
+              src={formData.video}
+              controls
+              className='w-full h-72 object-cover rounded-lg'
+            />
+            <button
+              type='button'
+              onClick={() => setFormData({ ...formData, video: null })}
+              className='absolute top-2 right-2 bg-red-500 text-white rounded-full p-1'
+            >
+              ×
+            </button>
+          </div>
         )}
+
         <ReactQuill
           theme='snow'
           placeholder='أكتب شيئًا...'
@@ -167,9 +227,11 @@ export default function CreatePost() {
             setFormData({ ...formData, content: value });
           }}
         />
+
         <Button type='submit' gradientDuoTone='purpleToPink'>
           نشر
         </Button>
+
         {publishError && (
           <Alert className='mt-5' color='failure'>
             {publishError}
