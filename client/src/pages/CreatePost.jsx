@@ -12,7 +12,10 @@ export default function CreatePost() {
   const [files, setFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState({});
   const [uploadError, setUploadError] = useState(null);
-  const [formData, setFormData] = useState({ images: [] });
+  const [formData, setFormData] = useState({ 
+    images: [],
+    mediaTypes: [] 
+  });
   const [publishError, setPublishError] = useState(null);
   const [activeUploads, setActiveUploads] = useState([]);
   const navigate = useNavigate();
@@ -20,7 +23,7 @@ export default function CreatePost() {
   const handleFileChange = (e) => {
     const newFiles = Array.from(e.target.files);
     
-    // Check for duplicates in new selection
+    // Check for duplicates
     const duplicates = newFiles.filter(newFile => 
       files.some(existingFile => existingFile.name === newFile.name) ||
       formData.images.some(img => img.includes(newFile.name))
@@ -67,7 +70,11 @@ export default function CreatePost() {
               },
               async () => {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve({ file: file.name, url: downloadURL, type: file.type });
+                resolve({ 
+                  file: file.name, 
+                  url: downloadURL, 
+                  type: file.type 
+                });
               }
             );
           });
@@ -76,11 +83,15 @@ export default function CreatePost() {
 
       // Process successful uploads
       const successfulUploads = uploadResults.filter(result => result.url);
-      const newImages = successfulUploads.map(result => result.url);
+      const newMedia = successfulUploads.map(result => ({
+        url: result.url,
+        type: result.type
+      }));
 
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...newImages]
+        images: [...prev.images, ...newMedia.map(m => m.url)],
+        mediaTypes: [...prev.mediaTypes, ...newMedia.map(m => m.type)]
       }));
 
       // Remove successfully uploaded files
@@ -105,17 +116,18 @@ export default function CreatePost() {
     });
   };
 
-  const handleRemoveImage = (imageUrl) => {
+  const handleRemoveImage = (imageUrl, index) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter(img => img !== imageUrl)
+      images: prev.images.filter((img, i) => i !== index),
+      mediaTypes: prev.mediaTypes.filter((type, i) => i !== index)
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Final duplicate check before submission
+      // Final duplicate check
       const uniqueImages = [...new Set(formData.images)];
       if (uniqueImages.length !== formData.images.length) {
         setPublishError('يوجد تكرار في ملفات الوسائط');
@@ -261,30 +273,35 @@ export default function CreatePost() {
           <div className='border rounded-lg p-4'>
             <h3 className='font-medium mb-2'>الوسائط المرفوعة ({formData.images.length}):</h3>
             <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4'>
-              {formData.images.map((image, index) => (
-                <div key={index} className='relative group'>
-                  {image.includes('image') ? (
-                    <img
-                      src={image}
-                      alt={`uploaded-${index}`}
-                      className='w-full h-40 object-cover rounded-lg'
-                    />
-                  ) : (
-                    <video
-                      src={image}
-                      className='w-full h-40 object-cover rounded-lg'
-                      controls
-                    />
-                  )}
-                  <button
-                    type='button'
-                    onClick={() => handleRemoveImage(image)}
-                    className='absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity'
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              {formData.images.map((media, index) => {
+                const isImage = formData.mediaTypes[index]?.startsWith('image') || 
+                               media.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+                
+                return (
+                  <div key={index} className='relative group'>
+                    {isImage ? (
+                      <img
+                        src={media}
+                        alt={`uploaded-${index}`}
+                        className='w-full h-40 object-cover rounded-lg'
+                      />
+                    ) : (
+                      <video
+                        src={media}
+                        className='w-full h-40 object-cover rounded-lg'
+                        controls
+                      />
+                    )}
+                    <button
+                      type='button'
+                      onClick={() => handleRemoveImage(media, index)}
+                      className='absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity'
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
