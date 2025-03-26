@@ -15,12 +15,16 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 export default function UpdatePost() {
-  const [file, setFile] = useState(null);
-  const [imageUploadProgress, setImageUploadProgress] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState({});
   const [uploadError, setUploadError] = useState(null);
-  const [formData, setFormData] = useState({});
+  const [formData, setFormData] = useState({ 
+    images: [],
+    mediaTypes: []
+  });
   const [publishError, setPublishError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeUploads, setActiveUploads] = useState([]);
   const { postId } = useParams();
 
   const navigate = useNavigate();
@@ -35,7 +39,13 @@ export default function UpdatePost() {
           console.error(data.message);
           setPublishError(data.message);
         } else {
-          setFormData(data.posts[0]);
+          // Convert legacy single image to images array if needed
+          const post = data.posts[0];
+          setFormData({
+            ...post,
+            images: post.images || (post.image ? [post.image] : []),
+            mediaTypes: post.mediaTypes || (post.image ? ['image/jpeg'] : [])
+          });
         }
       } catch (error) {
         console.error('Error fetching post:', error.message);
@@ -44,50 +54,108 @@ export default function UpdatePost() {
     fetchPost();
   }, [postId]);
 
+  const handleFileChange = (e) => {
+    const newFiles = Array.from(e.target.files);
+    
+    // Check for duplicates
+    const duplicates = newFiles.filter(newFile => 
+      files.some(existingFile => existingFile.name === newFile.name) ||
+      formData.images.some(img => img.includes(newFile.name))
+    );
+    
+    if (duplicates.length > 0) {
+      setUploadError(`الملفات التالية موجودة مسبقاً: ${duplicates.map(f => f.name).join(', ')}`);
+      return;
+    }
+    
+    setFiles(prev => [...prev, ...newFiles]);
+    setUploadError(null);
+  };
+
   const handleUploadMedia = async () => {
     try {
-      if (!file) {
-        setUploadError('الرجاء تحديد الملف المراد رفعه');
-        return;
-      }
-      const fileType = file.type.split('/')[0];
-      if (fileType !== 'image' && fileType !== 'video') {
-        setUploadError('الرجاء رفع ملف صورة أو فيديو صالح');
+      if (files.length === 0) {
+        setUploadError('الرجاء تحديد ملفات للرفع');
         return;
       }
 
       setUploadError(null);
       const storage = getStorage(app);
-      const fileName = `${Date.now()}-${file.name}`;
-      const storageRef = ref(storage, fileName);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      setActiveUploads(files.map(file => file.name));
 
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setImageUploadProgress(progress.toFixed(0));
-        },
-        (error) => {
-          setUploadError('File upload failed');
-          setImageUploadProgress(null);
-        },
-        () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            setFormData((prev) => ({
-              ...prev,
-              [fileType]: downloadURL,
-            }));
-            setImageUploadProgress(null);
-            setUploadError(null);
+      const uploadResults = await Promise.all(
+        files.map(async (file) => {
+          const fileName = new Date().getTime() + '-' + file.name;
+          const storageRef = ref(storage, fileName);
+          const uploadTask = uploadBytesResumable(storageRef, file);
+
+          return new Promise((resolve, reject) => {
+            uploadTask.on(
+              'state_changed',
+              (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                setUploadProgress(prev => ({
+                  ...prev,
+                  [file.name]: progress.toFixed(0)
+                }));
+              },
+              (error) => {
+                reject({ file: file.name, error });
+              },
+              async () => {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve({ 
+                  file: file.name, 
+                  url: downloadURL, 
+                  type: file.type 
+                });
+              }
+            );
           });
-        }
+        })
       );
+
+      // Process successful uploads
+      const successfulUploads = uploadResults.filter(result => result.url);
+      const newMedia = successfulUploads.map(result => ({
+        url: result.url,
+        type: result.type
+      }));
+
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...newMedia.map(m => m.url)],
+        mediaTypes: [...prev.mediaTypes, ...newMedia.map(m => m.type)]
+      }));
+
+      // Remove successfully uploaded files
+      setFiles(prev => prev.filter(file => 
+        !successfulUploads.some(result => result.file === file.name)
+      ));
+      setActiveUploads([]);
+      setUploadProgress({});
+
     } catch (error) {
-      setUploadError('File upload failed');
-      setImageUploadProgress(null);
-      console.error(error);
+      setUploadError(`فشل رفع بعض الملفات: ${error.file || ''}`);
+      console.error('Upload error:', error);
     }
+  };
+
+  const handleRemoveFile = (fileName) => {
+    setFiles(prev => prev.filter(file => file.name !== fileName));
+    setUploadProgress(prev => {
+      const newProgress = {...prev};
+      delete newProgress[fileName];
+      return newProgress;
+    });
+  };
+
+  const handleRemoveImage = (imageUrl, index) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((img, i) => i !== index),
+      mediaTypes: prev.mediaTypes.filter((type, i) => i !== index)
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -95,11 +163,24 @@ export default function UpdatePost() {
     setIsSubmitting(true);
 
     try {
+      // Final duplicate check
+      const uniqueImages = [...new Set(formData.images)];
+      if (uniqueImages.length !== formData.images.length) {
+        setPublishError('يوجد تكرار في ملفات الوسائط');
+        return;
+      }
+
       const res = await fetch(`/api/post/updatepost/${formData?._id}/${currentUser?._id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          images: uniqueImages
+        }),
       });
+      
       const data = await res.json();
       if (!res.ok) {
         setPublishError(data.message);
@@ -107,7 +188,7 @@ export default function UpdatePost() {
         navigate(`/post/${data.slug}`);
       }
     } catch (error) {
-      setPublishError('Something went wrong');
+      setPublishError('حدث خطأ ما');
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -116,12 +197,12 @@ export default function UpdatePost() {
 
   return (
     <div className="p-3 max-w-3xl mx-auto min-h-screen">
-      <h1 className="text-center text-3xl my-7 font-semibold">Update Post</h1>
+      <h1 className="text-center text-3xl my-7 font-semibold">تحديث الموضوع</h1>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-4 sm:flex-row justify-between">
           <TextInput
             type="text"
-            placeholder="Title"
+            placeholder="العنوان"
             required
             id="title"
             className="flex-1"
@@ -130,12 +211,11 @@ export default function UpdatePost() {
           />
           <Select
             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            value={formData?.category || 'uncategorized'}
+            value={formData?.category || 'غير مصنف'}
           >
-            <option value="uncategorized">Select a category</option>
-            <option value="javascript">JavaScript</option>
-            <option value="reactjs">React.js</option>
-            <option value="nextjs">Next.js</option>
+            <option value="غير مصنف">أختر فئة</option>
+            <option value="المقالات التحليلية">المقالات التحليلية</option>
+            <option value="التقارير والدراسات">التقارير والدراسات</option>
           </Select>
         </div>
 
@@ -143,7 +223,8 @@ export default function UpdatePost() {
           <FileInput
             type="file"
             accept="image/*,video/*"
-            onChange={(e) => setFile(e.target.files[0])}
+            multiple
+            onChange={handleFileChange}
           />
           <Button
             type="button"
@@ -151,35 +232,128 @@ export default function UpdatePost() {
             size="sm"
             outline
             onClick={handleUploadMedia}
-            disabled={!!imageUploadProgress}
+            disabled={files.length === 0 || activeUploads.length > 0}
           >
-            {imageUploadProgress ? (
-              <div className="w-16 h-16">
-                <CircularProgressbar value={imageUploadProgress} text={`${imageUploadProgress || 0}%`} />
-              </div>
-            ) : (
-              'Upload Media'
-            )}
+            رفع الملفات
           </Button>
         </div>
 
-        {uploadError && <Alert color="failure">{uploadError}</Alert>}
-        {formData?.image && <img src={formData.image} alt="upload" className="w-full h-72 object-cover" />}
-        {formData?.video && (
-          <video src={formData.video} controls className="w-full h-72 object-cover" />
+        {uploadError && (
+          <Alert color="failure">
+            {uploadError}
+            {uploadError.includes('موجودة مسبقاً') && (
+              <Button 
+                size="xs" 
+                color="light" 
+                className="mt-2"
+                onClick={() => {
+                  const uniqueFiles = files.filter((file, index, self) =>
+                    index === self.findIndex(f => f.name === file.name)
+                  );
+                  setFiles(uniqueFiles);
+                  setUploadError(null);
+                }}
+              >
+                إزالة التكرارات
+              </Button>
+            )}
+          </Alert>
+        )}
+
+        {/* Selected Files Section */}
+        {files.length > 0 && (
+          <div className="border rounded-lg p-4">
+            <h3 className="font-medium mb-2">الملفات المحددة ({files.length}):</h3>
+            <ul className="space-y-2">
+              {files.map((file) => (
+                <li key={file.name} className="flex justify-between items-center">
+                  <span className="truncate max-w-xs">{file.name}</span>
+                  <div className="flex items-center gap-2">
+                    {uploadProgress[file.name] ? (
+                      <div className="w-8 h-8">
+                        <CircularProgressbar
+                          value={uploadProgress[file.name]}
+                          text={`${uploadProgress[file.name]}%`}
+                          styles={{
+                            text: {
+                              fontSize: '24px',
+                              fill: '#fff',
+                            },
+                            path: {
+                              stroke: '#3b82f6',
+                            },
+                          }}
+                        />
+                      </div>
+                    ) : null}
+                    <Button
+                      size="xs"
+                      color="failure"
+                      onClick={() => handleRemoveFile(file.name)}
+                      disabled={activeUploads.includes(file.name)}
+                    >
+                      إزالة
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Uploaded Media Section */}
+        {formData.images.length > 0 && (
+          <div className="border rounded-lg p-4">
+            <h3 className="font-medium mb-2">الوسائط المرفوعة ({formData.images.length}):</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {formData.images.map((media, index) => {
+                const isImage = formData.mediaTypes[index]?.startsWith('image') || 
+                               media.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+                
+                return (
+                  <div key={index} className="relative group">
+                    {isImage ? (
+                      <img
+                        src={media}
+                        alt={`uploaded-${index}`}
+                        className="w-full h-40 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <video
+                        src={media}
+                        className="w-full h-40 object-cover rounded-lg"
+                        controls
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(media, index)}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         <ReactQuill
           theme="snow"
           value={formData?.content || ''}
-          placeholder="Write something..."
-          className="h-72 mb-12"
+          placeholder="أكتب شيئًا..."
+          className="h-72 mb-12 text-right rtl-editor"
           required
           onChange={(value) => setFormData({ ...formData, content: value })}
         />
 
-        <Button type="submit" gradientDuoTone="purpleToPink" disabled={isSubmitting}>
-          {isSubmitting ? 'Updating...' : 'Update Post'}
+        <Button 
+          type="submit" 
+          gradientDuoTone="purpleToPink" 
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'جاري التحديث...' : 'تحديث الموضوع'}
         </Button>
 
         {publishError && <Alert className="mt-5" color="failure">{publishError}</Alert>}
