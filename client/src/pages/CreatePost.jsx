@@ -1,4 +1,3 @@
-Copy
 import { Alert, Button, FileInput, Select, TextInput } from 'flowbite-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -16,7 +15,6 @@ export default function CreatePost() {
   const [formData, setFormData] = useState({ images: [] });
   const [publishError, setPublishError] = useState(null);
   const [activeUploads, setActiveUploads] = useState([]);
-
   const navigate = useNavigate();
 
   const handleFileChange = (e) => {
@@ -24,7 +22,8 @@ export default function CreatePost() {
     
     // Check for duplicates in new selection
     const duplicates = newFiles.filter(newFile => 
-      files.some(existingFile => existingFile.name === newFile.name)
+      files.some(existingFile => existingFile.name === newFile.name) ||
+      formData.images.some(img => img.includes(newFile.name))
     );
     
     if (duplicates.length > 0) {
@@ -68,7 +67,7 @@ export default function CreatePost() {
               },
               async () => {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve({ file: file.name, url: downloadURL });
+                resolve({ file: file.name, url: downloadURL, type: file.type });
               }
             );
           });
@@ -76,9 +75,8 @@ export default function CreatePost() {
       );
 
       // Process successful uploads
-      const newImages = uploadResults
-        .filter(result => result.url)
-        .map(result => result.url);
+      const successfulUploads = uploadResults.filter(result => result.url);
+      const newImages = successfulUploads.map(result => result.url);
 
       setFormData(prev => ({
         ...prev,
@@ -87,7 +85,7 @@ export default function CreatePost() {
 
       // Remove successfully uploaded files
       setFiles(prev => prev.filter(file => 
-        !uploadResults.some(result => result.file === file.name)
+        !successfulUploads.some(result => result.file === file.name)
       ));
       setActiveUploads([]);
       setUploadProgress({});
@@ -117,19 +115,31 @@ export default function CreatePost() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Final duplicate check before submission
+      const uniqueImages = [...new Set(formData.images)];
+      if (uniqueImages.length !== formData.images.length) {
+        setPublishError('يوجد تكرار في ملفات الوسائط');
+        return;
+      }
+
       const res = await fetch('/api/post/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          images: uniqueImages
+        }),
         credentials: 'include',
       });
+      
       const data = await res.json();
       if (!res.ok) {
         setPublishError(data.message);
         return;
       }
+      
       if (res.ok) {
         navigate(`/post/${data.slug}`);
       }
@@ -142,7 +152,27 @@ export default function CreatePost() {
     <div className='p-3 max-w-3xl mx-auto min-h-screen'>
       <h1 className='text-center text-3xl my-7 font-semibold'>إنشاء موضوع</h1>
       <form className='flex flex-col gap-4' onSubmit={handleSubmit}>
-        {/* ... (title and category inputs remain the same) ... */}
+        <div className='flex flex-col gap-4 sm:flex-row justify-between'>
+          <TextInput
+            type='text'
+            placeholder='العنوان'
+            required
+            id='title'
+            className='flex-1'
+            onChange={(e) =>
+              setFormData({ ...formData, title: e.target.value })
+            }
+          />
+          <Select
+            onChange={(e) =>
+              setFormData({ ...formData, category: e.target.value })
+            }
+          >
+            <option value='أختر فئة'>أختر فئة</option>
+            <option value='المقالات التحليلية'>المقالات التحليلية</option>
+            <option value='التقارير والدراسات'>التقارير والدراسات</option>
+          </Select>
+        </div>
 
         <div className='flex gap-4 items-center justify-between border-4 border-teal-500 border-dotted p-3'>
           <FileInput
@@ -163,12 +193,32 @@ export default function CreatePost() {
           </Button>
         </div>
 
-        {uploadError && <Alert color='failure'>{uploadError}</Alert>}
+        {uploadError && (
+          <Alert color='failure'>
+            {uploadError}
+            {uploadError.includes('موجودة مسبقاً') && (
+              <Button 
+                size='xs' 
+                color='light' 
+                className='mt-2'
+                onClick={() => {
+                  const uniqueFiles = files.filter((file, index, self) =>
+                    index === self.findIndex(f => f.name === file.name)
+                  );
+                  setFiles(uniqueFiles);
+                  setUploadError(null);
+                }}
+              >
+                إزالة التكرارات
+              </Button>
+            )}
+          </Alert>
+        )}
 
         {/* Selected Files Section */}
         {files.length > 0 && (
           <div className='border rounded-lg p-4'>
-            <h3 className='font-medium mb-2'>الملفات المحددة:</h3>
+            <h3 className='font-medium mb-2'>الملفات المحددة ({files.length}):</h3>
             <ul className='space-y-2'>
               {files.map((file) => (
                 <li key={file.name} className='flex justify-between items-center'>
@@ -206,10 +256,10 @@ export default function CreatePost() {
           </div>
         )}
 
-        {/* Uploaded Images Section */}
+        {/* Uploaded Media Section */}
         {formData.images.length > 0 && (
           <div className='border rounded-lg p-4'>
-            <h3 className='font-medium mb-2'>الملفات المرفوعة:</h3>
+            <h3 className='font-medium mb-2'>الوسائط المرفوعة ({formData.images.length}):</h3>
             <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4'>
               {formData.images.map((image, index) => (
                 <div key={index} className='relative group'>
@@ -223,6 +273,7 @@ export default function CreatePost() {
                     <video
                       src={image}
                       className='w-full h-40 object-cover rounded-lg'
+                      controls
                     />
                   )}
                   <button
@@ -232,13 +283,16 @@ export default function CreatePost() {
                   >
                     ×
                   </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         <ReactQuill
           theme='snow'
           placeholder='أكتب شيئًا...'
-          className="h-64 text-right rtl-editor mb-7"
+          className='h-64 text-right rtl-editor mb-7'
           required
           onChange={(value) => {
             setFormData({ ...formData, content: value });
