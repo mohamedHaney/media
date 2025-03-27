@@ -1,23 +1,20 @@
 import Post from '../models/post.model.js';
 import { errorHandler } from '../utils/error.js';
 
-// Function to generate a unique slug for each post
 const createUniqueSlug = async (title) => {
   if (!title || typeof title !== "string") {
-    return `post-${Date.now()}`; // Fallback for empty or invalid titles
+    return `post-${Date.now()}`;
   }
 
-  // Convert title to a slug while preserving Arabic and English text
   let slug = title
-    .normalize("NFD") // Normalize Unicode (important for Arabic)
-    .replace(/[\u064B-\u065F]/g, "") // Remove Arabic diacritics (optional)
-    .replace(/\s+/g, "-") // Convert spaces to dashes
-    .replace(/[^a-zA-Z0-9\u0600-\u06FF-]/g, "") // Keep English, Arabic, numbers, and dashes
-    .replace(/-+/g, "-") // Remove multiple consecutive dashes
-    .toLowerCase(); // Convert to lowercase
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-");
 
   if (!slug) {
-    slug = `post-${Date.now()}`; // Ensure a valid slug if all characters were removed
+    slug = `post-${Date.now()}`;
   }
 
   let uniqueSlug = slug;
@@ -31,7 +28,6 @@ const createUniqueSlug = async (title) => {
   return uniqueSlug;
 };
 
-// Create a new post
 export const create = async (req, res, next) => {
   if (!req.user.isAdmin) {
     return next(errorHandler(403, 'غير مسموح لك بإنشاء موضوع'));
@@ -41,8 +37,17 @@ export const create = async (req, res, next) => {
   }
   
   const slug = await createUniqueSlug(req.body.title);
+  
+  // Handle media data structure
+  const mediaData = {
+    images: req.body.images || [],
+    mediaTypes: req.body.mediaTypes || [],
+    video: req.body.video || null
+  };
+
   const newPost = new Post({
     ...req.body,
+    ...mediaData,
     slug,
     userId: req.user.id,
   });
@@ -55,7 +60,6 @@ export const create = async (req, res, next) => {
   }
 };
 
-// Get posts with filters and pagination
 export const getposts = async (req, res, next) => {
   try {
     const startIndex = parseInt(req.query.startIndex) || 0;
@@ -93,7 +97,6 @@ export const getposts = async (req, res, next) => {
   }
 };
 
-// Delete a post
 export const deletepost = async (req, res, next) => {
   if (!req.user.isAdmin || req.user.id !== req.params.userId) {
     return next(errorHandler(403, 'غير مسموح لك بمسح هذا الموضوع'));
@@ -106,19 +109,22 @@ export const deletepost = async (req, res, next) => {
   }
 };
 
-// Update a post
 export const updatepost = async (req, res, next) => {
   if (!req.user.isAdmin || req.user.id !== req.params.userId) {
     return next(errorHandler(403, 'غير مسموح لك بتعديل هذا الموضوع'));
   }
 
   try {
+    // Handle media data structure
+    const mediaData = {
+      images: req.body.images || [],
+      mediaTypes: req.body.mediaTypes || [],
+      video: req.body.video || null
+    };
+
     let updatedFields = {
-      title: req.body.title,
-      content: req.body.content,
-      category: req.body.category,
-      image: req.body.image,
-      video: req.body.video, // Ensure video updates properly
+      ...req.body,
+      ...mediaData
     };
 
     // Generate a new slug if the title has changed
