@@ -1,12 +1,7 @@
 import { Alert, Button, FileInput, Select, TextInput } from 'flowbite-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import {
-  getDownloadURL,
-  getStorage,
-  ref,
-  uploadBytesResumable,
-} from 'firebase/storage';
+import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { app } from '../firebase';
 import { useEffect, useState } from 'react';
 import { CircularProgressbar } from 'react-circular-progressbar';
@@ -20,7 +15,8 @@ export default function UpdatePost() {
   const [uploadError, setUploadError] = useState(null);
   const [formData, setFormData] = useState({ 
     images: [],
-    mediaTypes: []
+    mediaTypes: [],
+    video: null
   });
   const [publishError, setPublishError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,19 +32,20 @@ export default function UpdatePost() {
         const res = await fetch(`/api/post/getposts?postId=${postId}`);
         const data = await res.json();
         if (!res.ok) {
-          console.error(data.message);
           setPublishError(data.message);
-        } else {
-          // Convert legacy single image to images array if needed
-          const post = data.posts[0];
-          setFormData({
-            ...post,
-            images: post.images || (post.image ? [post.image] : []),
-            mediaTypes: post.mediaTypes || (post.image ? ['image/jpeg'] : [])
-          });
+          return;
         }
+
+        const post = data.posts[0];
+        setFormData({
+          ...post,
+          images: post.images || (post.image ? [post.image] : []),
+          mediaTypes: post.mediaTypes || (post.image ? ['image/jpeg'] : []),
+          video: post.video || null
+        });
       } catch (error) {
-        console.error('Error fetching post:', error.message);
+        setPublishError('Failed to load post data');
+        console.error('Fetch error:', error);
       }
     };
     fetchPost();
@@ -60,7 +57,8 @@ export default function UpdatePost() {
     // Check for duplicates
     const duplicates = newFiles.filter(newFile => 
       files.some(existingFile => existingFile.name === newFile.name) ||
-      formData.images.some(img => img.includes(newFile.name))
+      formData.images.some(img => img.includes(newFile.name)) ||
+      (formData.video && formData.video.includes(newFile.name))
     );
     
     if (duplicates.length > 0) {
@@ -122,11 +120,26 @@ export default function UpdatePost() {
         type: result.type
       }));
 
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, ...newMedia.map(m => m.url)],
-        mediaTypes: [...prev.mediaTypes, ...newMedia.map(m => m.type)]
-      }));
+      // Separate videos and images
+      const newVideos = newMedia.filter(m => m.type.startsWith('video'));
+      const newImages = newMedia.filter(m => m.type.startsWith('image'));
+
+      setFormData(prev => {
+        const updated = { ...prev };
+        
+        // Only allow one video
+        if (newVideos.length > 0) {
+          updated.video = newVideos[0].url;
+        }
+        
+        // Add new images
+        if (newImages.length > 0) {
+          updated.images = [...prev.images, ...newImages.map(m => m.url)];
+          updated.mediaTypes = [...prev.mediaTypes, ...newImages.map(m => m.type)];
+        }
+
+        return updated;
+      });
 
       // Remove successfully uploaded files
       setFiles(prev => prev.filter(file => 
@@ -144,7 +157,7 @@ export default function UpdatePost() {
   const handleRemoveFile = (fileName) => {
     setFiles(prev => prev.filter(file => file.name !== fileName));
     setUploadProgress(prev => {
-      const newProgress = {...prev};
+      const newProgress = { ...prev };
       delete newProgress[fileName];
       return newProgress;
     });
@@ -156,6 +169,10 @@ export default function UpdatePost() {
       images: prev.images.filter((img, i) => i !== index),
       mediaTypes: prev.mediaTypes.filter((type, i) => i !== index)
     }));
+  };
+
+  const handleRemoveVideo = () => {
+    setFormData(prev => ({ ...prev, video: null }));
   };
 
   const handleSubmit = async (e) => {
@@ -170,7 +187,7 @@ export default function UpdatePost() {
         return;
       }
 
-      const res = await fetch(`/api/post/updatepost/${formData?._id}/${currentUser?._id}`, {
+      const res = await fetch(`/api/post/updatepost/${formData._id}/${currentUser._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -184,12 +201,13 @@ export default function UpdatePost() {
       const data = await res.json();
       if (!res.ok) {
         setPublishError(data.message);
-      } else {
-        navigate(`/post/${data.slug}`);
+        return;
       }
+      
+      navigate(`/post/${data.slug}`);
     } catch (error) {
-      setPublishError('حدث خطأ ما');
-      console.error(error);
+      setPublishError('حدث خطأ ما أثناء التحديث');
+      console.error('Update error:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -207,11 +225,11 @@ export default function UpdatePost() {
             id="title"
             className="flex-1"
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            value={formData?.title || ''}
+            value={formData.title || ''}
           />
           <Select
             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            value={formData?.category || 'غير مصنف'}
+            value={formData.category || 'غير مصنف'}
           >
             <option value="غير مصنف">أختر فئة</option>
             <option value="المقالات التحليلية">المقالات التحليلية</option>
@@ -234,7 +252,7 @@ export default function UpdatePost() {
             onClick={handleUploadMedia}
             disabled={files.length === 0 || activeUploads.length > 0}
           >
-            رفع الملفات
+            {activeUploads.length > 0 ? 'جاري الرفع...' : 'رفع الملفات'}
           </Button>
         </div>
 
@@ -269,23 +287,18 @@ export default function UpdatePost() {
                 <li key={file.name} className="flex justify-between items-center">
                   <span className="truncate max-w-xs">{file.name}</span>
                   <div className="flex items-center gap-2">
-                    {uploadProgress[file.name] ? (
+                    {uploadProgress[file.name] && (
                       <div className="w-8 h-8">
                         <CircularProgressbar
                           value={uploadProgress[file.name]}
                           text={`${uploadProgress[file.name]}%`}
                           styles={{
-                            text: {
-                              fontSize: '24px',
-                              fill: '#fff',
-                            },
-                            path: {
-                              stroke: '#3b82f6',
-                            },
+                            text: { fontSize: '24px', fill: '#fff' },
+                            path: { stroke: '#3b82f6' },
                           }}
                         />
                       </div>
-                    ) : null}
+                    )}
                     <Button
                       size="xs"
                       color="failure"
@@ -301,47 +314,56 @@ export default function UpdatePost() {
           </div>
         )}
 
-        {/* Uploaded Media Section */}
+        {/* Video Preview */}
+        {formData.video && (
+          <div className="relative group border rounded-lg p-4">
+            <h3 className="font-medium mb-2">الفيديو:</h3>
+            <video
+              src={formData.video}
+              controls
+              className="w-full h-72 object-contain rounded-lg"
+            />
+            <button
+              type="button"
+              onClick={handleRemoveVideo}
+              className="absolute top-4 right-4 bg-red-500 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* Images Preview */}
         {formData.images.length > 0 && (
           <div className="border rounded-lg p-4">
-            <h3 className="font-medium mb-2">الوسائط المرفوعة ({formData.images.length}):</h3>
+            <h3 className="font-medium mb-2">الصور ({formData.images.length}):</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {formData.images.map((media, index) => {
-                const isImage = formData.mediaTypes[index]?.startsWith('image') || 
-                               media.match(/\.(jpeg|jpg|gif|png|webp)$/i);
-                
-                return (
-                  <div key={index} className="relative group">
-                    {isImage ? (
-                      <img
-                        src={media}
-                        alt={`uploaded-${index}`}
-                        className="w-full h-40 object-cover rounded-lg"
-                      />
-                    ) : (
-                      <video
-                        src={media}
-                        className="w-full h-40 object-cover rounded-lg"
-                        controls
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(media, index)}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      ×
-                    </button>
-                  </div>
-                );
-              })}
+              {formData.images.map((image, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={image}
+                    alt={`upload-${index}`}
+                    className="w-full h-40 object-cover rounded-lg"
+                    onError={(e) => {
+                      e.target.src = '/default-post-image.jpg';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(image, index)}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
         <ReactQuill
           theme="snow"
-          value={formData?.content || ''}
+          value={formData.content || ''}
           placeholder="أكتب شيئًا..."
           className="h-72 mb-12 text-right rtl-editor"
           required
@@ -356,7 +378,11 @@ export default function UpdatePost() {
           {isSubmitting ? 'جاري التحديث...' : 'تحديث الموضوع'}
         </Button>
 
-        {publishError && <Alert className="mt-5" color="failure">{publishError}</Alert>}
+        {publishError && (
+          <Alert className="mt-5" color="failure">
+            {publishError}
+          </Alert>
+        )}
       </form>
     </div>
   );
