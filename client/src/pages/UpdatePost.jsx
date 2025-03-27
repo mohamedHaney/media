@@ -44,17 +44,40 @@ export default function UpdatePost() {
         // If mediaTypes is empty but we have images, determine types from URLs
         if (post.images && post.images.length > 0 && mediaTypes.length === 0) {
           mediaTypes = post.images.map(img => {
+            if (!img) return 'image/jpeg'; // default to image if URL is invalid
+            
             const extension = img.split('.').pop().toLowerCase();
             const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension);
             return isImage ? 'image/jpeg' : 'video/mp4';
           });
         }
 
+        // Separate video from images if it exists
+        let video = post.video || null;
+        let images = post.images || [];
+        
+        // If there's no explicit video but we have media that looks like videos
+        if (!video && images.length > 0) {
+          const videoIndex = images.findIndex(img => {
+            if (!img) return false;
+            const extension = img.split('.').pop().toLowerCase();
+            return ['mp4', 'mov', 'avi', 'wmv'].includes(extension);
+          });
+          
+          if (videoIndex !== -1) {
+            video = images[videoIndex];
+            images = images.filter((_, i) => i !== videoIndex);
+            if (mediaTypes.length > videoIndex) {
+              mediaTypes = mediaTypes.filter((_, i) => i !== videoIndex);
+            }
+          }
+        }
+
         setFormData({
           ...post,
-          images: post.images || [],
+          images,
           mediaTypes,
-          video: post.video || null
+          video
         });
 
       } catch (error) {
@@ -65,24 +88,24 @@ export default function UpdatePost() {
     fetchPost();
   }, [postId]);
 
-  // Improved media type detection
   const getMediaType = (url, index) => {
     // First check stored mediaTypes
     if (formData.mediaTypes && formData.mediaTypes[index]) {
-      return formData.mediaTypes[index];
+      return formData.mediaTypes[index].startsWith('image') ? 'image' : 'video';
     }
     
     // Fallback to URL extension check
-    const extension = url?.split('.').pop()?.toLowerCase();
-    if (!extension) return 'unknown';
+    if (url) {
+      const extension = url.split('.').pop().toLowerCase();
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      const videoExtensions = ['mp4', 'mov', 'avi', 'wmv'];
+      
+      if (imageExtensions.includes(extension)) return 'image';
+      if (videoExtensions.includes(extension)) return 'video';
+    }
     
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    const videoExtensions = ['mp4', 'mov', 'avi', 'wmv'];
-    
-    if (imageExtensions.includes(extension)) return 'image';
-    if (videoExtensions.includes(extension)) return 'video';
-    
-    return 'unknown';
+    // Default to image if we can't determine
+    return 'image';
   };
 
   const handleFileChange = (e) => {
@@ -375,19 +398,19 @@ export default function UpdatePost() {
           </div>
         )}
 
-        {/* Media Preview Section */}
+        {/* Images Preview */}
         {formData.images.length > 0 && (
           <div className="border rounded-lg p-4">
-            <h3 className="font-medium mb-2">الوسائط ({formData.images.length}):</h3>
+            <h3 className="font-medium mb-2">الصور ({formData.images.length}):</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {formData.images.map((media, index) => {
-                const mediaType = getMediaType(media, index);
+              {formData.images.map((image, index) => {
+                const mediaType = getMediaType(image, index);
                 
                 return (
                   <div key={index} className="relative group">
-                    {mediaType.startsWith('image') ? (
+                    {mediaType === 'image' ? (
                       <img
-                        src={media}
+                        src={image}
                         alt={`upload-${index}`}
                         className="w-full h-40 object-cover rounded-lg"
                         onError={(e) => {
@@ -396,14 +419,14 @@ export default function UpdatePost() {
                       />
                     ) : (
                       <video
-                        src={media}
+                        src={image}
                         className="w-full h-40 object-cover rounded-lg"
                         controls
                       />
                     )}
                     <button
                       type="button"
-                      onClick={() => handleRemoveImage(media, index)}
+                      onClick={() => handleRemoveImage(image, index)}
                       className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       ×
