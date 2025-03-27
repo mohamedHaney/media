@@ -38,22 +38,21 @@ export default function UpdatePost() {
 
         const post = data.posts[0];
         
-        // Better media type handling
-        const images = post.images || (post.image ? [post.image] : []);
-        const mediaTypes = post.mediaTypes || [];
+        // Initialize mediaTypes array if it doesn't exist
+        let mediaTypes = post.mediaTypes || [];
         
-        // If mediaTypes is empty but we have images, try to determine types from URLs
-        if (images.length > 0 && mediaTypes.length === 0) {
-          images.forEach(img => {
+        // If mediaTypes is empty but we have images, determine types from URLs
+        if (post.images && post.images.length > 0 && mediaTypes.length === 0) {
+          mediaTypes = post.images.map(img => {
             const extension = img.split('.').pop().toLowerCase();
             const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension);
-            mediaTypes.push(isImage ? 'image/jpeg' : 'video/mp4');
+            return isImage ? 'image/jpeg' : 'video/mp4';
           });
         }
 
         setFormData({
           ...post,
-          images,
+          images: post.images || [],
           mediaTypes,
           video: post.video || null
         });
@@ -65,6 +64,26 @@ export default function UpdatePost() {
     };
     fetchPost();
   }, [postId]);
+
+  // Improved media type detection
+  const getMediaType = (url, index) => {
+    // First check stored mediaTypes
+    if (formData.mediaTypes && formData.mediaTypes[index]) {
+      return formData.mediaTypes[index];
+    }
+    
+    // Fallback to URL extension check
+    const extension = url?.split('.').pop()?.toLowerCase();
+    if (!extension) return 'unknown';
+    
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    const videoExtensions = ['mp4', 'mov', 'avi', 'wmv'];
+    
+    if (imageExtensions.includes(extension)) return 'image';
+    if (videoExtensions.includes(extension)) return 'video';
+    
+    return 'unknown';
+  };
 
   const handleFileChange = (e) => {
     const newFiles = Array.from(e.target.files);
@@ -196,26 +215,6 @@ export default function UpdatePost() {
 
   const handleRemoveVideo = () => {
     setFormData(prev => ({ ...prev, video: null }));
-  };
-
-  const isImageFile = (url, index) => {
-    // First check if we have explicit media type information
-    if (formData.mediaTypes && formData.mediaTypes[index]) {
-      return formData.mediaTypes[index].startsWith('image');
-    }
-    
-    // Fallback to URL extension check
-    if (url) {
-      const extension = url.split('.').pop().toLowerCase();
-      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-      const videoExtensions = ['mp4', 'mov', 'avi', 'wmv'];
-      
-      if (imageExtensions.includes(extension)) return true;
-      if (videoExtensions.includes(extension)) return false;
-    }
-    
-    // Default to image if we can't determine
-    return true;
   };
 
   const handleSubmit = async (e) => {
@@ -376,38 +375,42 @@ export default function UpdatePost() {
           </div>
         )}
 
-        {/* Images Preview */}
+        {/* Media Preview Section */}
         {formData.images.length > 0 && (
           <div className="border rounded-lg p-4">
-            <h3 className="font-medium mb-2">الصور ({formData.images.length}):</h3>
+            <h3 className="font-medium mb-2">الوسائط ({formData.images.length}):</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {formData.images.map((image, index) => (
-                <div key={index} className="relative group">
-                  {isImageFile(image, index) ? (
-                    <img
-                      src={image}
-                      alt={`upload-${index}`}
-                      className="w-full h-40 object-cover rounded-lg"
-                      onError={(e) => {
-                        e.target.src = '/default-post-image.jpg';
-                      }}
-                    />
-                  ) : (
-                    <video
-                      src={image}
-                      className="w-full h-40 object-cover rounded-lg"
-                      controls
-                    />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImage(image, index)}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+              {formData.images.map((media, index) => {
+                const mediaType = getMediaType(media, index);
+                
+                return (
+                  <div key={index} className="relative group">
+                    {mediaType.startsWith('image') ? (
+                      <img
+                        src={media}
+                        alt={`upload-${index}`}
+                        className="w-full h-40 object-cover rounded-lg"
+                        onError={(e) => {
+                          e.target.src = '/default-post-image.jpg';
+                        }}
+                      />
+                    ) : (
+                      <video
+                        src={media}
+                        className="w-full h-40 object-cover rounded-lg"
+                        controls
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(media, index)}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
