@@ -37,11 +37,20 @@ export default function UpdatePost() {
         }
 
         const post = data.posts[0];
-        // Convert legacy format to new format
-        const images = post.images || (post.image ? [post.image] : []);
-        const mediaTypes = post.mediaTypes || 
-                         (post.image ? ['image/jpeg'] : []);
         
+        // Better media type handling
+        const images = post.images || (post.image ? [post.image] : []);
+        const mediaTypes = post.mediaTypes || [];
+        
+        // If mediaTypes is empty but we have images, try to determine types from URLs
+        if (images.length > 0 && mediaTypes.length === 0) {
+          images.forEach(img => {
+            const extension = img.split('.').pop().toLowerCase();
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension);
+            mediaTypes.push(isImage ? 'image/jpeg' : 'video/mp4');
+          });
+        }
+
         setFormData({
           ...post,
           images,
@@ -189,17 +198,24 @@ export default function UpdatePost() {
     setFormData(prev => ({ ...prev, video: null }));
   };
 
-  // Improved media type detection
   const isImageFile = (url, index) => {
-    // Check from stored mediaTypes first
-    if (formData.mediaTypes[index]) {
+    // First check if we have explicit media type information
+    if (formData.mediaTypes && formData.mediaTypes[index]) {
       return formData.mediaTypes[index].startsWith('image');
     }
     
     // Fallback to URL extension check
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    const extension = url.split('.').pop().toLowerCase();
-    return imageExtensions.includes(extension);
+    if (url) {
+      const extension = url.split('.').pop().toLowerCase();
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      const videoExtensions = ['mp4', 'mov', 'avi', 'wmv'];
+      
+      if (imageExtensions.includes(extension)) return true;
+      if (videoExtensions.includes(extension)) return false;
+    }
+    
+    // Default to image if we can't determine
+    return true;
   };
 
   const handleSubmit = async (e) => {
