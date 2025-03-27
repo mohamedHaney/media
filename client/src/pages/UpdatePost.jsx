@@ -37,12 +37,18 @@ export default function UpdatePost() {
         }
 
         const post = data.posts[0];
+        // Convert legacy format to new format
+        const images = post.images || (post.image ? [post.image] : []);
+        const mediaTypes = post.mediaTypes || 
+                         (post.image ? ['image/jpeg'] : []);
+        
         setFormData({
           ...post,
-          images: post.images || (post.image ? [post.image] : []),
-          mediaTypes: post.mediaTypes || (post.image ? ['image/jpeg'] : []),
+          images,
+          mediaTypes,
           video: post.video || null
         });
+
       } catch (error) {
         setPublishError('Failed to load post data');
         console.error('Fetch error:', error);
@@ -105,7 +111,8 @@ export default function UpdatePost() {
                 resolve({ 
                   file: file.name, 
                   url: downloadURL, 
-                  type: file.type 
+                  type: file.type,
+                  extension: file.name.split('.').pop().toLowerCase()
                 });
               }
             );
@@ -117,12 +124,19 @@ export default function UpdatePost() {
       const successfulUploads = uploadResults.filter(result => result.url);
       const newMedia = successfulUploads.map(result => ({
         url: result.url,
-        type: result.type
+        type: result.type,
+        extension: result.extension
       }));
 
       // Separate videos and images
-      const newVideos = newMedia.filter(m => m.type.startsWith('video'));
-      const newImages = newMedia.filter(m => m.type.startsWith('image'));
+      const newVideos = newMedia.filter(m => 
+        m.type.startsWith('video') || 
+        ['mp4', 'mov', 'avi', 'wmv'].includes(m.extension)
+      );
+      const newImages = newMedia.filter(m => 
+        m.type.startsWith('image') || 
+        ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(m.extension)
+      );
 
       setFormData(prev => {
         const updated = { ...prev };
@@ -173,6 +187,19 @@ export default function UpdatePost() {
 
   const handleRemoveVideo = () => {
     setFormData(prev => ({ ...prev, video: null }));
+  };
+
+  // Improved media type detection
+  const isImageFile = (url, index) => {
+    // Check from stored mediaTypes first
+    if (formData.mediaTypes[index]) {
+      return formData.mediaTypes[index].startsWith('image');
+    }
+    
+    // Fallback to URL extension check
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    const extension = url.split('.').pop().toLowerCase();
+    return imageExtensions.includes(extension);
   };
 
   const handleSubmit = async (e) => {
@@ -340,14 +367,22 @@ export default function UpdatePost() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {formData.images.map((image, index) => (
                 <div key={index} className="relative group">
-                  <img
-                    src={image}
-                    alt={`upload-${index}`}
-                    className="w-full h-40 object-cover rounded-lg"
-                    onError={(e) => {
-                      e.target.src = '/default-post-image.jpg';
-                    }}
-                  />
+                  {isImageFile(image, index) ? (
+                    <img
+                      src={image}
+                      alt={`upload-${index}`}
+                      className="w-full h-40 object-cover rounded-lg"
+                      onError={(e) => {
+                        e.target.src = '/default-post-image.jpg';
+                      }}
+                    />
+                  ) : (
+                    <video
+                      src={image}
+                      className="w-full h-40 object-cover rounded-lg"
+                      controls
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(image, index)}
