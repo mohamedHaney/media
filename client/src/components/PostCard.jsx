@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export default function PostCard({ post }) {
   // Get the first image if available, or use default if none exists
-  const displayImage = post.images?.[0] || post.image || 'default-image-url.jpg';
+  const displayImage = post.images?.[0] || post.image || 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png';
   
   return (
     <Link
@@ -29,7 +29,7 @@ export default function PostCard({ post }) {
             alt='post cover'
             className='h-[230px] w-full object-cover group-hover:h-[200px] transition-all duration-300 z-20'
             onError={(e) => {
-              e.target.src = 'default-image-url.jpg'; // Fallback if image fails to load
+              e.target.src = 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png';
             }}
           />
         )}
