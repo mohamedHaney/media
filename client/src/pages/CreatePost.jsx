@@ -105,7 +105,7 @@ export default function CreatePost() {
       <h1 className='text-center text-3xl my-7 font-semibold'>إنشاء موضوع</h1>
       <form className='flex flex-col gap-4' onSubmit={handleSubmit}>
         <div className='flex flex-col gap-4 sm:flex-row justify-between'>
-          <TextInput type='text' placeholder='العنوان' required onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+          <TextInput type='text' placeholder='العنوان' className='w-full' required onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
           <Select onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
             <option value=''>أختر فئة</option>
             <option value='قصص وتجارب شخصية'>قصص وتجارب شخصية</option>
