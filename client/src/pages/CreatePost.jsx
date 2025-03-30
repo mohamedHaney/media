@@ -134,7 +134,6 @@ export default function CreatePost() {
         {/* Rich Text Editor */}
         <div className="quill-container">
           <ReactQuill
-            className="h-full"
             theme="snow"
             modules={{
               toolbar: [
@@ -156,7 +155,7 @@ export default function CreatePost() {
             value={formData.content}
             onChange={(value) => setFormData({ ...formData, content: value })}
             placeholder="اكتب شيئًا مميزًا هنا..."
-            className="custom-quill rtl-editor h-full"
+            className="custom-quill rtl-editor h-[100pxpx]"
           />
         </div>
 
