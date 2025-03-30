@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { useNavigate } from 'react-router-dom';
-import '../styles/CustomQuill.css'; // Custom styles for better UI
+import './styles.css' // Custom styles for better UI
 
 export default function CreatePost() {
   const [files, setFiles] = useState([]);
