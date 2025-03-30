@@ -114,7 +114,7 @@ export default function CreatePost() {
         </div>
 
         {/* File Upload */}
-        <div className='border-2 border-gray-300 p-3 rounded-lg'>
+        <div className='flex justify-between border-2 border-gray-300 p-3 rounded-lg'>
           <FileInput type='file' accept='image/*,video/*' multiple onChange={handleFileChange} />
           <Button onClick={handleUploadMedia} disabled={files.length === 0 || activeUploads.length > 0}>رفع الملفات</Button>
         </div>
