@@ -24,29 +24,44 @@
   max-width: 10rem;
 }
 /* Arabic-inspired styling for React Quill */
-.rtl-editor .ql-editor {
-  direction: rtl;
-  text-align: right;
-}
-
-.ql-editor {
-  font-family: 'Amiri', serif;
-  color: #333;
-  background-color: #cfd4dd;
+/* Quill Container */
+.custom-quill {
+  min-height: 250px;
+  font-size: 16px;
+  line-height: 1.8;
+  border: 1px solid #ccc;
+  border-radius: 10px;
   padding: 15px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Toolbar */
 .ql-toolbar {
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  background: #f3f4f6;
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 8px 8px 0 0;
 }
 
-.ql-toolbar button {
-  color: #333;
+/* Placeholder */
+.ql-editor.ql-blank::before {
+  color: #888;
+  font-style: italic;
 }
 
-.ql-toolbar .ql-picker {
-  color: #333;
+/* RTL Support */
+.rtl-editor .ql-editor {
+  text-align: right;
+  direction: rtl;
+  font-family: 'Tajawal', sans-serif;
 }
+
+/* Button Hover Effects */
+.ql-toolbar button:hover,
+.ql-toolbar .ql-picker:hover {
+  background: #ddd;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+}
+
