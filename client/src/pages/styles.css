@@ -44,7 +44,7 @@
   border-radius: 8px 8px 0 0;
 }
 .ql-container{
-height:167px;
+    height: 167px;
 }
 /* Placeholder */
 .ql-editor.ql-blank::before {
