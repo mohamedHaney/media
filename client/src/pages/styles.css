@@ -43,7 +43,9 @@
   padding: 10px;
   border-radius: 8px 8px 0 0;
 }
-
+.quill-container{
+height:78px;
+}
 /* Placeholder */
 .ql-editor.ql-blank::before {
   color: #888;
