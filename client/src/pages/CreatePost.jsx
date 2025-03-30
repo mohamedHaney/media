@@ -132,7 +132,7 @@ export default function CreatePost() {
         )}
 
         {/* Rich Text Editor */}
-        <div className="quill-container h-[143px]">
+        <div className="quill-container">
           <ReactQuill
             theme="snow"
             modules={{
