@@ -181,7 +181,7 @@ export default function CreatePost() {
             }
           >
             <option value='أختر فئة'>أختر فئة</option>
-            <option value='المقالات التحليلية'>المقالات التحليلية</option>
+            <option value='قصص وتجارب شخصية'>قصص وتجارب شخصية</option>
             <option value='التقارير والدراسات'>التقارير والدراسات</option>
           </Select>
         </div>
