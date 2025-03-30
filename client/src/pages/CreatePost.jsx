@@ -144,7 +144,7 @@ export default function CreatePost() {
                 [{ color: [] }, { background: [] }],
                 [{ list: 'ordered' }, { list: 'bullet' }],
                 ['blockquote', 'code-block'],
-                ['link', 'image', 'video'],
+                ['link'],
                 ['clean'],
               ],
             }}
