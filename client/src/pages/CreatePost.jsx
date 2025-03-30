@@ -145,7 +145,6 @@ export default function CreatePost() {
                 [{ list: 'ordered' }, { list: 'bullet' }],
                 ['blockquote', 'code-block'],
                 ['link'],
-                ['clean'],
               ],
             }}
             formats={[
