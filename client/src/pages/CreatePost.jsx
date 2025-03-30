@@ -155,7 +155,7 @@ export default function CreatePost() {
             value={formData.content}
             onChange={(value) => setFormData({ ...formData, content: value })}
             placeholder="اكتب شيئًا مميزًا هنا..."
-            className="custom-quill rtl-editor h-[50px]"
+            className="custom-quill rtl-editor"
           />
         </div>
 
