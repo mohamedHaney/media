@@ -7,27 +7,37 @@ import { useState } from 'react';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { useNavigate } from 'react-router-dom';
-import './styles.css' // Custom styles for better UI
+import './styles.css';
 
 export default function CreatePost() {
   const [files, setFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState({});
   const [uploadError, setUploadError] = useState(null);
   const [formData, setFormData] = useState({
-    images: [],
-    mediaTypes: [],
+    images: [], // Now stores objects with url, type, and name
     title: '',
     category: '',
     content: '',
   });
   const [publishError, setPublishError] = useState(null);
   const [activeUploads, setActiveUploads] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
   const navigate = useNavigate();
 
   const handleFileChange = (e) => {
     const newFiles = Array.from(e.target.files);
-    setFiles(prev => [...prev, ...newFiles]);
-    setUploadError(null);
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
+    
+    const validFiles = newFiles.filter(file => validTypes.includes(file.type));
+    const invalidFiles = newFiles.filter(file => !validTypes.includes(file.type));
+
+    if (invalidFiles.length > 0) {
+      setUploadError(`الملفات التالية غير مدعومة: ${invalidFiles.map(f => f.name).join(', ')}`);
+    } else {
+      setUploadError(null);
+    }
+
+    setFiles(prev => [...prev, ...validFiles]);
   };
 
   const handleUploadMedia = async () => {
@@ -37,6 +47,7 @@ export default function CreatePost() {
     }
 
     setUploadError(null);
+    setIsUploading(true);
     const storage = getStorage(app);
     setActiveUploads(files.map(file => file.name));
 
@@ -60,44 +71,55 @@ export default function CreatePost() {
               (error) => reject({ file: file.name, error }),
               async () => {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve({ file: file.name, url: downloadURL, type: file.type });
+                resolve({ 
+                  url: downloadURL, 
+                  type: file.type,
+                  name: file.name
+                });
               }
             );
           });
         })
       );
 
-      const successfulUploads = uploadResults.filter(result => result.url);
+      const successfulUploads = uploadResults.filter(result => result && result.url);
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...successfulUploads.map(m => m.url)],
-        mediaTypes: [...prev.mediaTypes, ...successfulUploads.map(m => m.type)],
+        images: [...prev.images, ...successfulUploads],
       }));
 
-      setFiles(prev => prev.filter(file => !successfulUploads.some(result => result.file === file.name)));
+      setFiles(prev => prev.filter(file => 
+        !successfulUploads.some(result => result.name === file.name)
+      ));
+    } catch (error) {
+      setUploadError(`فشل رفع بعض الملفات: ${error.file || error.message || ''}`);
+    } finally {
       setActiveUploads([]);
       setUploadProgress({});
-    } catch (error) {
-      setUploadError(`فشل رفع بعض الملفات: ${error.file || ''}`);
+      setIsUploading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch('/api/post/create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
-      credentials: 'include',
-    });
+    try {
+      const res = await fetch('/api/post/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+        credentials: 'include',
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      setPublishError(data.message);
-      return;
+      const data = await res.json();
+      if (!res.ok) {
+        setPublishError(data.message);
+        return;
+      }
+
+      navigate(`/post/${data.slug}`);
+    } catch (error) {
+      setPublishError('حدث خطأ أثناء محاولة نشر الموضوع');
     }
-
-    navigate(`/post/${data.slug}`);
   };
 
   return (
@@ -105,7 +127,13 @@ export default function CreatePost() {
       <h1 className='text-center text-3xl my-7 font-semibold'>إنشاء موضوع</h1>
       <form className='flex flex-col gap-4' onSubmit={handleSubmit}>
         <div className='flex flex-col gap-4 sm:flex-row justify-between'>
-          <TextInput type='text' placeholder='العنوان' className='w-full' required onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+          <TextInput 
+            type='text' 
+            placeholder='العنوان' 
+            className='w-full' 
+            required 
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
+          />
           <Select onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
             <option value=''>أختر فئة</option>
             <option value='قصص وتجارب شخصية'>قصص وتجارب شخصية</option>
@@ -113,15 +141,25 @@ export default function CreatePost() {
           </Select>
         </div>
 
-        {/* File Upload */}
+        {/* File Upload Section */}
         <div className='flex justify-between border-2 border-gray-300 p-3 rounded-lg'>
-          <FileInput type='file' accept='image/*,video/*' multiple onChange={handleFileChange} />
-          <Button onClick={handleUploadMedia} disabled={files.length === 0 || activeUploads.length > 0}>رفع الملفات</Button>
+          <FileInput 
+            type='file' 
+            accept='image/*,video/*' 
+            multiple 
+            onChange={handleFileChange} 
+          />
+          <Button 
+            onClick={handleUploadMedia} 
+            disabled={files.length === 0 || isUploading}
+          >
+            {isUploading ? 'جاري الرفع...' : 'رفع الملفات'}
+          </Button>
         </div>
 
-        {/* Upload Progress */}
+        {/* Upload Progress Section */}
         {activeUploads.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-4 p-4 border border-gray-200 rounded-lg">
             <h3 className="text-lg font-medium">جاري رفع الملفات...</h3>
             {activeUploads.map((fileName) => (
               <div key={fileName} className="flex items-center gap-4">
@@ -136,7 +174,7 @@ export default function CreatePost() {
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="truncate">{fileName}</p>
+                  <p className="truncate text-sm">{fileName}</p>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                     <div 
                       className="bg-blue-600 h-2.5 rounded-full" 
@@ -149,42 +187,52 @@ export default function CreatePost() {
           </div>
         )}
 
-        {/* Uploaded Media */}
+        {/* Pending Files Section */}
+        {files.length > 0 && (
+          <div className="space-y-2 p-4 border border-gray-200 rounded-lg">
+            <h3 className="text-lg font-medium">الملفات في انتظار الرفع:</h3>
+            <ul className="list-disc pl-5 space-y-1">
+              {files.map((file, index) => (
+                <li key={index} className="truncate text-sm">{file.name}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Uploaded Media Section */}
         {formData.images.length > 0 && (
           <div className='grid grid-cols-2 gap-3'>
             {formData.images.map((media, index) => (
-              <div key={index} className='relative'>
-                {media.type?.startsWith('image/') ? (
-                  <img src={media} alt='Uploaded' className='w-full h-40 object-cover rounded-lg' />
+              <div key={index} className='relative group'>
+                {media.type.startsWith('image/') ? (
+                  <img 
+                    src={media.url} 
+                    alt={`Uploaded ${media.name}`} 
+                    className='w-full h-40 object-cover rounded-lg'
+                  />
                 ) : (
-                  <video controls className='w-full h-40 object-cover rounded-lg'>
-                    <source src={media} type={formData.mediaTypes[index]} />
+                  <video 
+                    controls 
+                    className='w-full h-40 object-cover rounded-lg'
+                  >
+                    <source src={media.url} type={media.type} />
+                    Your browser does not support the video tag.
                   </video>
                 )}
                 <button 
                   onClick={() => setFormData({ 
                     ...formData, 
-                    images: formData.images.filter((_, i) => i !== index),
-                    mediaTypes: formData.mediaTypes.filter((_, i) => i !== index)
+                    images: formData.images.filter((_, i) => i !== index)
                   })} 
-                  className='absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full'
+                  className='absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
                 >
                   ×
                 </button>
+                <span className='absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded truncate max-w-[90%]'>
+                  {media.name}
+                </span>
               </div>
             ))}
-          </div>
-        )}
-
-        {/* Files waiting to be uploaded */}
-        {files.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-lg font-medium">الملفات في انتظار الرفع:</h3>
-            <ul className="list-disc pl-5">
-              {files.map((file, index) => (
-                <li key={index} className="truncate">{file.name}</li>
-              ))}
-            </ul>
           </div>
         )}
 
