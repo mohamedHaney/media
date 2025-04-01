@@ -38,18 +38,16 @@ export const create = async (req, res, next) => {
   
   const slug = await createUniqueSlug(req.body.title);
   
-  // Handle media data structure
-  const mediaData = {
-    images: req.body.images || [],
-    mediaTypes: req.body.mediaTypes || [],
-    video: req.body.video || null
-  };
+  // Validate images array
+  if (req.body.images && !Array.isArray(req.body.images)) {
+    return next(errorHandler(400, 'يجب أن تكون الصور مصفوفة'));
+  }
 
   const newPost = new Post({
     ...req.body,
-    ...mediaData,
     slug,
     userId: req.user.id,
+    images: req.body.images || [],
   });
 
   try {
