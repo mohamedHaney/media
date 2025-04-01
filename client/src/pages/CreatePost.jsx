@@ -14,7 +14,7 @@ export default function CreatePost() {
   const [uploadProgress, setUploadProgress] = useState({});
   const [uploadError, setUploadError] = useState(null);
   const [formData, setFormData] = useState({
-    images: [], // Now stores objects with url, type, and name
+    images: [],
     title: '',
     category: '',
     content: '',
@@ -26,7 +26,7 @@ export default function CreatePost() {
 
   const handleFileChange = (e) => {
     const newFiles = Array.from(e.target.files);
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     
     const validFiles = newFiles.filter(file => validTypes.includes(file.type));
     const invalidFiles = newFiles.filter(file => !validTypes.includes(file.type));
@@ -71,26 +71,19 @@ export default function CreatePost() {
               (error) => reject({ file: file.name, error }),
               async () => {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve({ 
-                  url: downloadURL, 
-                  type: file.type,
-                  name: file.name
-                });
+                resolve(downloadURL);
               }
             );
           });
         })
       );
 
-      const successfulUploads = uploadResults.filter(result => result && result.url);
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...successfulUploads],
+        images: [...prev.images, ...uploadResults.filter(url => url)],
       }));
 
-      setFiles(prev => prev.filter(file => 
-        !successfulUploads.some(result => result.name === file.name)
-      ));
+      setFiles([]);
     } catch (error) {
       setUploadError(`فشل رفع بعض الملفات: ${error.file || error.message || ''}`);
     } finally {
@@ -103,10 +96,15 @@ export default function CreatePost() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const postData = {
+        ...formData,
+        // No need to transform images array - already contains just URLs
+      };
+
       const res = await fetch('/api/post/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(postData),
         credentials: 'include',
       });
 
@@ -141,11 +139,10 @@ export default function CreatePost() {
           </Select>
         </div>
 
-        {/* File Upload Section */}
         <div className='flex justify-between border-2 border-gray-300 p-3 rounded-lg'>
           <FileInput 
             type='file' 
-            accept='image/*,video/*' 
+            accept='image/*' 
             multiple 
             onChange={handleFileChange} 
           />
@@ -157,7 +154,6 @@ export default function CreatePost() {
           </Button>
         </div>
 
-        {/* Upload Progress Section */}
         {activeUploads.length > 0 && (
           <div className="space-y-4 p-4 border border-gray-200 rounded-lg">
             <h3 className="text-lg font-medium">جاري رفع الملفات...</h3>
@@ -187,7 +183,6 @@ export default function CreatePost() {
           </div>
         )}
 
-        {/* Pending Files Section */}
         {files.length > 0 && (
           <div className="space-y-2 p-4 border border-gray-200 rounded-lg">
             <h3 className="text-lg font-medium">الملفات في انتظار الرفع:</h3>
@@ -199,26 +194,15 @@ export default function CreatePost() {
           </div>
         )}
 
-        {/* Uploaded Media Section */}
         {formData.images.length > 0 && (
           <div className='grid grid-cols-2 gap-3'>
-            {formData.images.map((media, index) => (
+            {formData.images.map((imageUrl, index) => (
               <div key={index} className='relative group'>
-                {media.type.startsWith('image/') ? (
-                  <img 
-                    src={media.url} 
-                    alt={`Uploaded ${media.name}`} 
-                    className='w-full h-40 object-cover rounded-lg'
-                  />
-                ) : (
-                  <video 
-                    controls 
-                    className='w-full h-40 object-cover rounded-lg'
-                  >
-                    <source src={media.url} type={media.type} />
-                    Your browser does not support the video tag.
-                  </video>
-                )}
+                <img 
+                  src={imageUrl} 
+                  alt={`Uploaded ${index}`} 
+                  className='w-full h-40 object-cover rounded-lg'
+                />
                 <button 
                   onClick={() => setFormData({ 
                     ...formData, 
@@ -228,15 +212,11 @@ export default function CreatePost() {
                 >
                   ×
                 </button>
-                <span className='absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded truncate max-w-[90%]'>
-                  {media.name}
-                </span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Rich Text Editor */}
         <div className="quill-container">
           <ReactQuill
             theme="snow"
