@@ -14,7 +14,7 @@ export default function CreatePost() {
   const [uploadProgress, setUploadProgress] = useState({});
   const [uploadError, setUploadError] = useState(null);
   const [formData, setFormData] = useState({
-    images: [],
+    media: [], // Array of {url: string, type: 'image'|'video'}
     title: '',
     category: '',
     content: '',
@@ -26,7 +26,10 @@ export default function CreatePost() {
 
   const handleFileChange = (e) => {
     const newFiles = Array.from(e.target.files);
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const validTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'video/mp4', 'video/webm', 'video/quicktime'
+    ];
     
     const validFiles = newFiles.filter(file => validTypes.includes(file.type));
     const invalidFiles = newFiles.filter(file => !validTypes.includes(file.type));
@@ -71,7 +74,10 @@ export default function CreatePost() {
               (error) => reject({ file: file.name, error }),
               async () => {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve(downloadURL);
+                resolve({
+                  url: downloadURL,
+                  type: file.type.startsWith('image/') ? 'image' : 'video'
+                });
               }
             );
           });
@@ -80,7 +86,7 @@ export default function CreatePost() {
 
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...uploadResults.filter(url => url)],
+        media: [...prev.media, ...uploadResults],
       }));
 
       setFiles([]);
@@ -96,15 +102,10 @@ export default function CreatePost() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const postData = {
-        ...formData,
-        // No need to transform images array - already contains just URLs
-      };
-
       const res = await fetch('/api/post/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(postData),
+        body: JSON.stringify(formData),
         credentials: 'include',
       });
 
@@ -118,6 +119,13 @@ export default function CreatePost() {
     } catch (error) {
       setPublishError('حدث خطأ أثناء محاولة نشر الموضوع');
     }
+  };
+
+  const removeMedia = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      media: prev.media.filter((_, i) => i !== index)
+    }));
   };
 
   return (
@@ -142,7 +150,7 @@ export default function CreatePost() {
         <div className='flex justify-between border-2 border-gray-300 p-3 rounded-lg'>
           <FileInput 
             type='file' 
-            accept='image/*' 
+            accept='image/*,video/*' 
             multiple 
             onChange={handleFileChange} 
           />
@@ -194,20 +202,27 @@ export default function CreatePost() {
           </div>
         )}
 
-        {formData.images.length > 0 && (
+        {formData.media.length > 0 && (
           <div className='grid grid-cols-2 gap-3'>
-            {formData.images.map((imageUrl, index) => (
+            {formData.media.map((media, index) => (
               <div key={index} className='relative group'>
-                <img 
-                  src={imageUrl} 
-                  alt={`Uploaded ${index}`} 
-                  className='w-full h-40 object-cover rounded-lg'
-                />
+                {media.type === 'image' ? (
+                  <img 
+                    src={media.url} 
+                    alt={`Uploaded ${index}`} 
+                    className='w-full h-40 object-cover rounded-lg'
+                  />
+                ) : (
+                  <video 
+                    controls 
+                    className='w-full h-40 object-cover rounded-lg'
+                  >
+                    <source src={media.url} type={`video/${media.url.split('.').pop()}`} />
+                    Your browser does not support the video tag.
+                  </video>
+                )}
                 <button 
-                  onClick={() => setFormData({ 
-                    ...formData, 
-                    images: formData.images.filter((_, i) => i !== index)
-                  })} 
+                  onClick={() => removeMedia(index)} 
                   className='absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
                 >
                   ×
@@ -232,11 +247,6 @@ export default function CreatePost() {
                 ['link'],
               ],
             }}
-            formats={[
-              'header', 'font', 'align', 'bold', 'italic', 'underline', 'strike',
-              'color', 'background', 'list', 'bullet', 'blockquote', 'code-block',
-              'link', 'image', 'video'
-            ]}
             value={formData.content}
             onChange={(value) => setFormData({ ...formData, content: value })}
             placeholder="اكتب شيئًا مميزًا هنا..."
