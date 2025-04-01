@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { useNavigate } from 'react-router-dom';
-import './styles.css' // Custom styles for better UI
+import './styles.css';
 
 export default function CreatePost() {
   const [files, setFiles] = useState([]);
@@ -42,12 +42,12 @@ export default function CreatePost() {
 
     try {
       const uploadResults = await Promise.all(
-        files.map(async (file) => {
-          const fileName = new Date().getTime() + '-' + file.name;
-          const storageRef = ref(storage, fileName);
-          const uploadTask = uploadBytesResumable(storageRef, file);
-
+        files.map((file) => {
           return new Promise((resolve, reject) => {
+            const fileName = new Date().getTime() + '-' + file.name;
+            const storageRef = ref(storage, fileName);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
             uploadTask.on(
               'state_changed',
               (snapshot) => {
@@ -113,54 +113,28 @@ export default function CreatePost() {
           </Select>
         </div>
 
-        {/* File Upload */}
         <div className='flex justify-between border-2 border-gray-300 p-3 rounded-lg'>
           <FileInput type='file' accept='image/*,video/*' multiple onChange={handleFileChange} />
           <Button onClick={handleUploadMedia} disabled={files.length === 0 || activeUploads.length > 0}>رفع الملفات</Button>
         </div>
 
-        {/* Uploaded Media */}
-        {formData.images.length > 0 && (
-          <div className='grid grid-cols-2 gap-3'>
-            {formData.images.map((media, index) => (
-              <div key={index} className='relative'>
-                <img src={media} alt='Uploaded' className='w-full h-40 object-cover rounded-lg' />
-                <button onClick={() => setFormData({ ...formData, images: formData.images.filter((_, i) => i !== index) })} className='absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full'>×</button>
-              </div>
-            ))}
+        {activeUploads.length > 0 && (
+          <div className='mt-4'>
+            <h2 className='text-lg font-semibold'>جاري الرفع...</h2>
+            <div className='grid grid-cols-2 gap-3'>
+              {activeUploads.map((fileName, index) => (
+                <div key={index} className='flex flex-col items-center bg-gray-100 p-2 rounded-lg'>
+                  <p className='text-sm text-gray-700'>{fileName}</p>
+                  <div className='w-14 h-14 mt-2'>
+                    <CircularProgressbar value={uploadProgress[fileName] || 0} text={`${uploadProgress[fileName] || 0}%`} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Rich Text Editor */}
-        <div className="quill-container">
-          <ReactQuill
-            theme="snow"
-            modules={{
-              toolbar: [
-                [{ header: [1, 2, 3, false] }],
-                [{ font: [] }],
-                [{ align: [] }],
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ color: [] }, { background: [] }],
-                [{ list: 'ordered' }, { list: 'bullet' }],
-                ['blockquote', 'code-block'],
-                ['link'],
-              ],
-            }}
-            formats={[
-              'header', 'font', 'align', 'bold', 'italic', 'underline', 'strike',
-              'color', 'background', 'list', 'bullet', 'blockquote', 'code-block',
-              'link', 'image', 'video'
-            ]}
-            value={formData.content}
-            onChange={(value) => setFormData({ ...formData, content: value })}
-            placeholder="اكتب شيئًا مميزًا هنا..."
-            className="custom-quill rtl-editor"
-          />
-        </div>
-
         <Button type='submit'>نشر</Button>
-
         {publishError && <Alert color='failure'>{publishError}</Alert>}
       </form>
     </div>
