@@ -9,9 +9,9 @@ import { Pagination, Autoplay, EffectFade } from 'swiper/modules';
 import "./styles.css";
 
 const images = [
+  "https://lucienmigne.fr/wp-content/uploads/2022/09/Al-Minya-2-sur-16-min-768x512.jpg",
   "https://lucienmigne.fr/wp-content/uploads/2022/09/Al-Minya-1-sur-16-min-768x512.jpg",
   "https://lucienmigne.fr/wp-content/uploads/2022/09/Al-Minya-8-sur-16-min-768x512.jpg",
-  "https://lucienmigne.fr/wp-content/uploads/2022/09/Al-Minya-2-sur-16-min-768x512.jpg",
   "https://lucienmigne.fr/wp-content/uploads/2022/09/Al-Minya-3-sur-16-min-scaled.jpg",
   "https://lucienmigne.fr/wp-content/uploads/2022/09/Al-Minya-4-sur-16-min-scaled.jpg",
   "https://lucienmigne.fr/wp-content/uploads/2022/09/Al-Minya-5-sur-16-min-768x512.jpg",
