@@ -1,18 +1,29 @@
 import mongoose from 'mongoose';
 
-// Validation function for images array
-const validateImagesArray = (images) => {
-  if (!Array.isArray(images)) return false;
-  if (images.length > 10) return false; // Max 10 images per post
-  return images.every(img => typeof img === 'string' && img.startsWith('http'));
-};
+const mediaSchema = new mongoose.Schema({
+  url: {
+    type: String,
+    required: true,
+    validate: {
+      validator: v => v.startsWith('http'),
+      message: props => `${props.value} is not a valid URL`
+    }
+  },
+  type: {
+    type: String,
+    required: true,
+    enum: ['image', 'video']
+  },
+  thumbnail: String, // Optional thumbnail for videos
+  altText: String    // Optional alt text for accessibility
+}, { _id: false });  // Don't create IDs for subdocuments
 
 const postSchema = new mongoose.Schema(
   {
     userId: {
       type: String,
       required: true,
-      index: true // Added index for faster queries by userId
+      index: true
     },
     content: {
       type: String,
@@ -22,58 +33,53 @@ const postSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      index: true // Added index for faster title searches
+      index: true
     },
-    images: {
-      type: [String],
-      default: [
-        'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png'
-      ],
+    media: {
+      type: [mediaSchema],
+      default: [],
       validate: {
-        validator: validateImagesArray,
-        message: props => `Invalid images array: ${props.value}`
-      }
-    },
-    video: {
-      type: String,
-      default: null,
-      validate: {
-        validator: v => v === null || v.startsWith('http'),
-        message: props => `${props.value} is not a valid video URL`
+        validator: v => v.length <= 10,
+        message: 'Cannot have more than 10 media items'
       }
     },
     category: {
       type: String,
       default: 'غير مصنف',
-      index: true // Added index for faster category filtering
+      index: true
     },
     slug: {
       type: String,
       required: true,
       unique: true,
-      index: true // Added index for faster slug lookups
+      index: true
     },
   },
   { 
     timestamps: true,
-    toJSON: { virtuals: true }, // Include virtuals when converting to JSON
-    toObject: { virtuals: true } // Include virtuals when converting to objects
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
 
-// Virtual for featured image (first image in array)
+// Virtuals
 postSchema.virtual('featuredImage').get(function() {
-  return this.images.length > 0 ? this.images[0] : null;
+  const img = this.media.find(m => m.type === 'image');
+  return img ? img.url : null;
 });
 
-// Virtual for hasMedia (check if post has images or video)
+postSchema.virtual('featuredVideo').get(function() {
+  const vid = this.media.find(m => m.type === 'video');
+  return vid ? vid.url : null;
+});
+
 postSchema.virtual('hasMedia').get(function() {
-  return this.images.length > 0 || this.video !== null;
+  return this.media.length > 0;
 });
 
-// Compound index for frequently queried together fields
+// Indexes
 postSchema.index({ userId: 1, category: 1 });
-postSchema.index({ title: 'text', content: 'text' }); // Text index for search
+postSchema.index({ title: 'text', content: 'text' });
 
 const Post = mongoose.model('Post', postSchema);
 
