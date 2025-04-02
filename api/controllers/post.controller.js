@@ -1,7 +1,11 @@
 import Post from '../models/post.model.js';
 import { errorHandler } from '../utils/error.js';
+import { deleteObject, getStorage, ref } from 'firebase/storage';
+import { app } from '../firebase.js';
 
-// Helper function to generate unique slug
+const storage = getStorage(app);
+
+// Helper function to generate unique slug with Arabic support
 const createUniqueSlug = async (title) => {
   if (!title || typeof title !== "string") {
     return `post-${Date.now()}`;
@@ -10,8 +14,10 @@ const createUniqueSlug = async (title) => {
   let slug = title
     .trim()
     .toLowerCase()
+    .normalize('NFD') // Normalize to decomposed form
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
     .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
+    .replace(/[^\p{L}\p{N}-]/gu, "") // Unicode-aware character removal
     .replace(/-+/g, "-");
 
   if (!slug) {
@@ -54,6 +60,10 @@ export const create = async (req, res, next) => {
         if (!['image', 'video'].includes(media.type)) {
           return next(errorHandler(400, 'نوع الوسائط غير صحيح (يجب أن يكون image أو video)'));
         }
+      }
+
+      if (req.body.media.length > 10) {
+        return next(errorHandler(400, 'لا يمكن إضافة أكثر من 10 وسائط'));
       }
     }
 
@@ -124,11 +134,29 @@ export const getposts = async (req, res, next) => {
 
 // Delete Post
 export const deletepost = async (req, res, next) => {
-  if (!req.user.isAdmin || req.user.id !== req.params.userId) {
-    return next(errorHandler(403, 'غير مسموح لك بمسح هذا الموضوع'));
-  }
-
   try {
+    const post = await Post.findById(req.params.postId);
+    
+    if (!post) {
+      return next(errorHandler(404, 'الموضوع غير موجود'));
+    }
+
+    if (!req.user.isAdmin || req.user.id !== post.userId) {
+      return next(errorHandler(403, 'غير مسموح لك بمسح هذا الموضوع'));
+    }
+
+    // Delete associated media from storage
+    try {
+      await Promise.all(
+        post.media.map(async (media) => {
+          const fileRef = ref(storage, media.url);
+          await deleteObject(fileRef).catch(console.error);
+        })
+      );
+    } catch (storageError) {
+      console.error('Error deleting media files:', storageError);
+    }
+
     await Post.findByIdAndDelete(req.params.postId);
     res.status(200).json('تم حذف الموضوع بنجاح');
   } catch (error) {
@@ -138,11 +166,17 @@ export const deletepost = async (req, res, next) => {
 
 // Update Post
 export const updatepost = async (req, res, next) => {
-  if (!req.user.isAdmin || req.user.id !== req.params.userId) {
-    return next(errorHandler(403, 'غير مسموح لك بتعديل هذا الموضوع'));
-  }
-
   try {
+    const post = await Post.findById(req.params.postId);
+    
+    if (!post) {
+      return next(errorHandler(404, 'الموضوع غير موجود'));
+    }
+
+    if (!req.user.isAdmin || req.user.id !== post.userId) {
+      return next(errorHandler(403, 'غير مسموح لك بتعديل هذا الموضوع'));
+    }
+
     // Validate media if exists
     if (req.body.media) {
       if (!Array.isArray(req.body.media)) {
@@ -157,11 +191,15 @@ export const updatepost = async (req, res, next) => {
           return next(errorHandler(400, 'نوع الوسائط غير صحيح (يجب أن يكون image أو video)'));
         }
       }
+
+      if (req.body.media.length > 10) {
+        return next(errorHandler(400, 'لا يمكن إضافة أكثر من 10 وسائط'));
+      }
     }
 
     // Generate new slug if title changed
     let updatedFields = { ...req.body };
-    if (req.body.title) {
+    if (req.body.title && req.body.title !== post.title) {
       updatedFields.slug = await createUniqueSlug(req.body.title);
     }
 
