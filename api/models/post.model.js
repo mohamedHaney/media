@@ -5,7 +5,7 @@ const mediaSchema = new mongoose.Schema({
     type: String,
     required: true,
     validate: {
-      validator: v => v.startsWith('http'),
+      validator: v => v.startsWith('http') || v.startsWith('https'),
       message: props => `${props.value} is not a valid URL`
     }
   },
@@ -14,9 +14,18 @@ const mediaSchema = new mongoose.Schema({
     required: true,
     enum: ['image', 'video']
   },
-  thumbnail: String, // Optional thumbnail for videos
-  altText: String    // Optional alt text for accessibility
-}, { _id: false });  // Don't create IDs for subdocuments
+  thumbnail: {
+    type: String,
+    validate: {
+      validator: v => !v || v.startsWith('http') || v.startsWith('https'),
+      message: props => `${props.value} is not a valid thumbnail URL`
+    }
+  },
+  altText: {
+    type: String,
+    maxlength: 200
+  }
+}, { _id: false });
 
 const postSchema = new mongoose.Schema(
   {
@@ -28,12 +37,14 @@ const postSchema = new mongoose.Schema(
     content: {
       type: String,
       required: true,
+      minlength: 100
     },
     title: {
       type: String,
       required: true,
       unique: true,
-      index: true
+      index: true,
+      maxlength: 200
     },
     media: {
       type: [mediaSchema],
@@ -46,7 +57,8 @@ const postSchema = new mongoose.Schema(
     category: {
       type: String,
       default: 'غير مصنف',
-      index: true
+      index: true,
+      enum: ['غير مصنف', 'قصص وتجارب شخصية', 'التقارير والدراسات', 'أخبار', 'مقالات']
     },
     slug: {
       type: String,
