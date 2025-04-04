@@ -9,9 +9,9 @@ const createUniqueSlug = async (title) => {
   let slug = title
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-");
+    .replace(/\s+/g, "-") // استبدال المسافات بشرطات
+    .replace(/[^a-z0-9\u0600-\u06FF-]/g, "") // السماح بالحروف العربية والإنجليزية والأرقام والشرطات
+    .replace(/-+/g, "-"); // إزالة الشرطات المتكررة
 
   if (!slug) {
     slug = `post-${Date.now()}`;
@@ -27,6 +27,7 @@ const createUniqueSlug = async (title) => {
 
   return uniqueSlug;
 };
+
 
 export const create = async (req, res, next) => {
   if (!req.user.isAdmin) {
