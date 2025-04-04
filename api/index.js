@@ -29,9 +29,10 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: "https://documentary-media.vercel.app",
+  origin: ["https://documentary-media.vercel.app", "http://localhost:5173"],
   credentials: true,
 }));
+
 
 app.use('/api/user', userRoutes);
 app.use('/api/auth', authRoutes);
