@@ -1,11 +1,6 @@
 import Post from '../models/post.model.js';
 import { errorHandler } from '../utils/error.js';
-import { deleteObject, getStorage, ref } from 'firebase/storage';
-import { app } from '../firebase.js';
 
-const storage = getStorage(app);
-
-// Helper function to generate unique slug with Arabic support
 const createUniqueSlug = async (title) => {
   if (!title || typeof title !== "string") {
     return `post-${Date.now()}`;
@@ -14,10 +9,8 @@ const createUniqueSlug = async (title) => {
   let slug = title
     .trim()
     .toLowerCase()
-    .normalize('NFD') // Normalize to decomposed form
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
     .replace(/\s+/g, "-")
-    .replace(/[^\p{L}\p{N}-]/gu, "") // Unicode-aware character removal
+    .replace(/[^a-z0-9-]/g, "")
     .replace(/-+/g, "-");
 
   if (!slug) {
@@ -35,47 +28,29 @@ const createUniqueSlug = async (title) => {
   return uniqueSlug;
 };
 
-// Create Post
 export const create = async (req, res, next) => {
   if (!req.user.isAdmin) {
     return next(errorHandler(403, 'غير مسموح لك بإنشاء موضوع'));
   }
-
   if (!req.body.title || !req.body.content) {
-    return next(errorHandler(400, 'العنوان والمحتوى مطلوبان'));
+    return next(errorHandler(400, 'برجاء التأكد من ملئ كل الحقول'));
+  }
+  
+  const slug = await createUniqueSlug(req.body.title);
+  
+  // Validate images array
+  if (req.body.images && !Array.isArray(req.body.images)) {
+    return next(errorHandler(400, 'يجب أن تكون الصور مصفوفة'));
   }
 
+  const newPost = new Post({
+    ...req.body,
+    slug,
+    userId: req.user.id,
+    images: req.body.images || [],
+  });
+
   try {
-    // Validate media if exists
-    if (req.body.media) {
-      if (!Array.isArray(req.body.media)) {
-        return next(errorHandler(400, 'يجب أن تكون الوسائط مصفوفة'));
-      }
-
-      // Validate each media item
-      for (const media of req.body.media) {
-        if (!media.url || !media.type) {
-          return next(errorHandler(400, 'كل وسائط يجب أن تحتوي على رابط ونوع'));
-        }
-        if (!['image', 'video'].includes(media.type)) {
-          return next(errorHandler(400, 'نوع الوسائط غير صحيح (يجب أن يكون image أو video)'));
-        }
-      }
-
-      if (req.body.media.length > 10) {
-        return next(errorHandler(400, 'لا يمكن إضافة أكثر من 10 وسائط'));
-      }
-    }
-
-    const slug = await createUniqueSlug(req.body.title);
-
-    const newPost = new Post({
-      ...req.body,
-      slug,
-      userId: req.user.id,
-      media: req.body.media || [],
-    });
-
     const savedPost = await newPost.save();
     res.status(201).json(savedPost);
   } catch (error) {
@@ -83,15 +58,13 @@ export const create = async (req, res, next) => {
   }
 };
 
-// Get Posts
 export const getposts = async (req, res, next) => {
   try {
     const startIndex = parseInt(req.query.startIndex) || 0;
-    const limit = parseInt(req.query.limit) || 9;
+    const limit = parseInt(req.query.limit) || 8;
     const sortDirection = req.query.order === 'asc' ? 1 : -1;
 
-    // Build query
-    const query = {
+    const posts = await Post.find({
       ...(req.query.userId && { userId: req.query.userId }),
       ...(req.query.category && { category: req.query.category }),
       ...(req.query.slug && { slug: req.query.slug }),
@@ -102,28 +75,18 @@ export const getposts = async (req, res, next) => {
           { content: { $regex: req.query.searchTerm, $options: 'i' } },
         ],
       }),
-    };
-
-    // Execute query
-    const posts = await Post.find(query)
+    })
       .sort({ updatedAt: sortDirection })
       .skip(startIndex)
       .limit(limit);
 
-    // Get counts for analytics
     const totalPosts = await Post.countDocuments();
     const now = new Date();
     const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
     const lastMonthPosts = await Post.countDocuments({ createdAt: { $gte: oneMonthAgo } });
 
-    // Filter sensitive data
-    const filteredPosts = posts.map(post => {
-      const { __v, updatedAt, ...rest } = post._doc;
-      return rest;
-    });
-
     res.status(200).json({
-      posts: filteredPosts,
+      posts,
       totalPosts,
       lastMonthPosts,
     });
@@ -132,112 +95,48 @@ export const getposts = async (req, res, next) => {
   }
 };
 
-// Delete Post
 export const deletepost = async (req, res, next) => {
+  if (!req.user.isAdmin || req.user.id !== req.params.userId) {
+    return next(errorHandler(403, 'غير مسموح لك بمسح هذا الموضوع'));
+  }
   try {
-    const post = await Post.findById(req.params.postId);
-    
-    if (!post) {
-      return next(errorHandler(404, 'الموضوع غير موجود'));
-    }
-
-    if (!req.user.isAdmin || req.user.id !== post.userId) {
-      return next(errorHandler(403, 'غير مسموح لك بمسح هذا الموضوع'));
-    }
-
-    // Delete associated media from storage
-    try {
-      await Promise.all(
-        post.media.map(async (media) => {
-          const fileRef = ref(storage, media.url);
-          await deleteObject(fileRef).catch(console.error);
-        })
-      );
-    } catch (storageError) {
-      console.error('Error deleting media files:', storageError);
-    }
-
     await Post.findByIdAndDelete(req.params.postId);
-    res.status(200).json('تم حذف الموضوع بنجاح');
+    res.status(200).json('تم مسح هذا الموضوع');
   } catch (error) {
     next(error);
   }
 };
 
-// Update Post
 export const updatepost = async (req, res, next) => {
+  if (!req.user.isAdmin || req.user.id !== req.params.userId) {
+    return next(errorHandler(403, 'غير مسموح لك بتعديل هذا الموضوع'));
+  }
+
   try {
-    const post = await Post.findById(req.params.postId);
-    
-    if (!post) {
-      return next(errorHandler(404, 'الموضوع غير موجود'));
-    }
+    // Handle media data structure
+    const mediaData = {
+      images: req.body.images || [],
+      mediaTypes: req.body.mediaTypes || [],
+      video: req.body.video || null
+    };
 
-    if (!req.user.isAdmin || req.user.id !== post.userId) {
-      return next(errorHandler(403, 'غير مسموح لك بتعديل هذا الموضوع'));
-    }
+    let updatedFields = {
+      ...req.body,
+      ...mediaData
+    };
 
-    // Validate media if exists
-    if (req.body.media) {
-      if (!Array.isArray(req.body.media)) {
-        return next(errorHandler(400, 'يجب أن تكون الوسائط مصفوفة'));
-      }
-
-      for (const media of req.body.media) {
-        if (!media.url || !media.type) {
-          return next(errorHandler(400, 'كل وسائط يجب أن تحتوي على رابط ونوع'));
-        }
-        if (!['image', 'video'].includes(media.type)) {
-          return next(errorHandler(400, 'نوع الوسائط غير صحيح (يجب أن يكون image أو video)'));
-        }
-      }
-
-      if (req.body.media.length > 10) {
-        return next(errorHandler(400, 'لا يمكن إضافة أكثر من 10 وسائط'));
-      }
-    }
-
-    // Generate new slug if title changed
-    let updatedFields = { ...req.body };
-    if (req.body.title && req.body.title !== post.title) {
+    // Generate a new slug if the title has changed
+    if (req.body.title) {
       updatedFields.slug = await createUniqueSlug(req.body.title);
     }
 
     const updatedPost = await Post.findByIdAndUpdate(
       req.params.postId,
-      {
-        $set: updatedFields,
-      },
+      { $set: updatedFields },
       { new: true }
     );
 
     res.status(200).json(updatedPost);
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Get Posts by Category
-export const getPostsByCategory = async (req, res, next) => {
-  try {
-    const posts = await Post.find({ category: req.params.category })
-      .sort({ createdAt: -1 })
-      .limit(10);
-
-    res.status(200).json(posts);
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Get Recent Posts
-export const getRecentPosts = async (req, res, next) => {
-  try {
-    const posts = await Post.find()
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    res.status(200).json(posts);
   } catch (error) {
     next(error);
   }
