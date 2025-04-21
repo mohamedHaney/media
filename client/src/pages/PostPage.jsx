@@ -1,5 +1,5 @@
 import { Button, Spinner } from 'flowbite-react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import CommentSection from '../components/CommentSection';
 import PostCard from '../components/PostCard';
@@ -20,6 +20,11 @@ export default function PostPage() {
   const swiperRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [totalSlides, setTotalSlides] = useState(0);
+
+  // Scroll to top on component mount using useLayoutEffect
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -152,7 +157,7 @@ export default function PostPage() {
               onSlideChange={(swiper) => {
                 setActiveIndex(swiper.activeIndex);
               }}
-              className="flex-1 rounded-lg shadow-lg"
+              className="flex-1 rounded-lg"
             >
               {mediaItems.map((media, index) => (
                 <SwiperSlide key={index} className="bg-black flex justify-center items-center">
