@@ -79,7 +79,7 @@ export default function PostCard({ post }) {
   return (
     <Link
       to={`/post/${post.slug}`}
-      className="relative w-full sm:w-[320px] h-[420px] overflow-hidden rounded-3xl 
+      className="relative w-full h-[420px] overflow-hidden rounded-3xl 
                 border border-gray-200 dark:border-gray-700 
                 shadow-sm dark:shadow-none
                 bg-white dark:bg-gray-800
