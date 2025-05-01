@@ -78,11 +78,11 @@ export default function DashProfile() {
     setUpdateUserError(null);
     setUpdateUserSuccess(null);
     if (Object.keys(formData).length === 0) {
-      setUpdateUserError('لم يحدث اي تغير');
+      setUpdateUserError('No changes made');
       return;
     }
     if (imageFileUploading) {
-      setUpdateUserError('من فضلك انتظر لتحميل الوسائط');
+      setUpdateUserError('Please wait for image to upload');
       return;
     }
     try {
@@ -100,7 +100,7 @@ export default function DashProfile() {
         setUpdateUserError(data.message);
       } else {
         dispatch(updateSuccess(data));
-        setUpdateUserSuccess("تم تحديث الملف الشخصي بنجاح");
+        setUpdateUserSuccess("User's profile updated successfully");
       }
     } catch (error) {
       dispatch(updateFailure(error.message));
@@ -154,10 +154,9 @@ export default function DashProfile() {
   return (
     <div className={`max-w-lg mx-auto p-3 w-full ${theme === 'dark' ? 'dark:bg-gray-900' : 'bg-white'} rounded-xl shadow-lg`}>
       <h1 className='my-7 text-center font-bold text-3xl text-gray-800 dark:text-white'>
-        الملف الشخصي
+        Profile
       </h1>
       
-      {/* Global Alerts - Positioned at the top for better visibility */}
       {updateUserSuccess && (
         <Alert color='success' className='mb-6 animate-fade-in' withBorderAccent>
           {updateUserSuccess}
@@ -170,7 +169,6 @@ export default function DashProfile() {
       )}
 
       <form onSubmit={handleSubmit} className='flex flex-col gap-6'>
-        {/* Profile Picture Upload */}
         <div className='flex flex-col items-center gap-4'>
           <input
             type='file'
@@ -180,7 +178,7 @@ export default function DashProfile() {
             hidden
           />
           <div
-            className='relative w-24 h-24 self-center cursor-pointer shadow-lg overflow-hidden rounded-full border-4 border-gray-200 dark:border-gray-600 hover:border-teal-500 dark:hover:border-teal-400 transition-all duration-300'
+            className='relative w-32 h-32 self-center cursor-pointer shadow-lg overflow-hidden rounded-full border-4 border-gray-200 dark:border-gray-600 hover:border-teal-500 dark:hover:border-teal-400 transition-all duration-300'
             onClick={() => filePickerRef.current.click()}
           >
             {imageFileUploadProgress && (
@@ -210,13 +208,23 @@ export default function DashProfile() {
                 }}
               />
             )}
-            <img
-              src={imageFileUrl || currentUser.profilePicture}
-              alt='user'
-              className={`rounded-full w-full h-full object-cover transition-opacity duration-300 ${
-                imageFileUploadProgress && imageFileUploadProgress < 100 ? 'opacity-70' : 'opacity-100'
-              }`}
-            />
+            {imageFileUrl || currentUser?.profilePicture ? (
+              <img
+                src={imageFileUrl || currentUser.profilePicture}
+                alt='user'
+                className={`rounded-full w-full h-full object-cover transition-opacity duration-300 ${
+                  imageFileUploadProgress && imageFileUploadProgress < 100 ? 'opacity-70' : 'opacity-100'
+                }`}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://via.placeholder.com/150';
+                }}
+              />
+            ) : (
+              <div className='w-full h-full bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-4xl font-bold text-gray-500 dark:text-gray-300'>
+                {currentUser?.username?.charAt(0).toUpperCase() || 'U'}
+              </div>
+            )}
           </div>
           {imageFileUploadError && (
             <Alert color='failure' className='w-full mb-4' withBorderAccent>
@@ -225,34 +233,32 @@ export default function DashProfile() {
           )}
         </div>
 
-        {/* Form Fields */}
         <div className='space-y-4'>
           <TextInput
             type='text'
             id='username'
-            placeholder='اسم المستخدم'
-            defaultValue={currentUser.username}
+            placeholder='Username'
+            defaultValue={currentUser?.username}
             onChange={handleChange}
             className='dark:bg-gray-700 dark:border-gray-600 dark:text-white'
           />
           <TextInput
             type='email'
             id='email'
-            placeholder='البريد الإليكتروني'
-            defaultValue={currentUser.email}
+            placeholder='Email'
+            defaultValue={currentUser?.email}
             onChange={handleChange}
             className='dark:bg-gray-700 dark:border-gray-600 dark:text-white'
           />
           <TextInput
             type='password'
             id='password'
-            placeholder='كلمه المرور'
+            placeholder='Password'
             onChange={handleChange}
             className='dark:bg-gray-700 dark:border-gray-600 dark:text-white'
           />
         </div>
 
-        {/* Buttons */}
         <div className='space-y-4'>
           <Button
             type='submit'
@@ -263,10 +269,10 @@ export default function DashProfile() {
             }`}
             disabled={loading || imageFileUploading}
           >
-            {loading ? 'جار التحميل...' : 'تحديث الملف الشخصي'}
+            {loading ? 'Loading...' : 'Update Profile'}
           </Button>
           
-          {currentUser.isAdmin && (
+          {currentUser?.isAdmin && (
             <Link to={'/create-post'} className='block'>
               <Button
                 type='button'
@@ -276,30 +282,28 @@ export default function DashProfile() {
                     : 'bg-teal-600 hover:bg-gray-100'
                 }`}
               >
-                إنشاء موضوع جديد
+                Create New Post
               </Button>
             </Link>
           )}
         </div>
       </form>
 
-      {/* Account Actions */}
       <div className='flex justify-between border-t border-gray-200 dark:border-gray-700 pt-6'>
         <button
           onClick={() => setShowModal(true)}
           className='text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium transition-colors'
         >
-          حذف الحساب
+          Delete Account
         </button>
         <button
           onClick={handleSignout}
           className='text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 font-medium transition-colors'
         >
-          تسجيل خروج
+          Sign Out
         </button>
       </div>
 
-      {/* Delete Account Modal */}
       <Modal
         show={showModal}
         onClose={() => setShowModal(false)}
@@ -312,10 +316,10 @@ export default function DashProfile() {
           <div className='text-center'>
             <HiOutlineExclamationCircle className='h-16 w-16 text-red-500 dark:text-red-400 mx-auto mb-4 animate-pulse' />
             <h3 className='mb-5 text-lg font-medium text-gray-800 dark:text-gray-200'>
-              هل انت متأكد من انك تريد حذف حسابك؟
+              Are you sure you want to delete your account?
             </h3>
             <p className='text-gray-500 dark:text-gray-400 mb-6'>
-              سيتم حذف جميع بياناتك بشكل دائم ولا يمكن استرجاعها.
+              All your data will be permanently deleted and cannot be recovered.
             </p>
             <div className='flex justify-center gap-4'>
               <Button 
@@ -326,7 +330,7 @@ export default function DashProfile() {
                 } text-white transition-colors`}
                 onClick={handleDeleteUser}
               >
-                نعم، احذف الحساب
+                Yes, Delete Account
               </Button>
               <Button 
                 className={`px-6 py-2.5 font-bold ${
@@ -336,7 +340,7 @@ export default function DashProfile() {
                 } text-white transition-colors`}
                 onClick={() => setShowModal(false)}
               >
-                إلغاء
+                Cancel
               </Button>
             </div>
           </div>
