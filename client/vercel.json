@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://media-ojwb.vercel.app/api/$1"
+      "destination": "https://media-sable-kappa.vercel.app/api/$1"
     },
     {
       "source": "/(.*)",
