@@ -253,7 +253,7 @@ export default function UpdatePost() {
             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
             value={formData.category}
           >
-            <option value="المقالات التحليلية">المقالات التحليلية</option>
+            <option value="مقالات">مقالات</option>
             <option value="التقارير والدراسات">التقارير والدراسات</option>
             <option value="أخبار">أخبار</option>
             <option value="قصص وتجارب">قصص وتجارب</option>
