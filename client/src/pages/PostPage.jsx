@@ -21,11 +21,12 @@ export default function PostPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [totalSlides, setTotalSlides] = useState(0);
 
-  // Scroll to top on component mount using useLayoutEffect
+  // Scroll to top on component mount
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  // Fetch post by slug
   useEffect(() => {
     const fetchPost = async () => {
       try {
@@ -50,6 +51,7 @@ export default function PostPage() {
     fetchPost();
   }, [postSlug]);
 
+  // Fetch recent posts
   useEffect(() => {
     try {
       const fetchRecentPosts = async () => {
@@ -65,6 +67,7 @@ export default function PostPage() {
     }
   }, []);
 
+  // Get sorted media items (videos first)
   const getMediaItems = () => {
     if (!post) return [];
     if (post.media && Array.isArray(post.media)) {
@@ -74,6 +77,7 @@ export default function PostPage() {
         return 0;
       });
     }
+
     const media = [];
     if (post.video) {
       media.push({
@@ -114,18 +118,17 @@ export default function PostPage() {
       <h1 className='text-3xl mt-10 p-4 text-center font-serif max-w-2xl lg:text-4xl'>
         {post?.title}
       </h1>
-      <Link
-        to={`/search?category=${post?.category}`}
-        className='self-center mt-5'
-      >
+      <Link to={`/search?category=${post?.category}`} className='self-center mt-5'>
         <Button color='gray' pill size='xs'>
           {post?.category}
         </Button>
       </Link>
+
+      {/* Media Slider */}
       {mediaItems.length > 0 && (
         <div className="w-full max-w-4xl mt-10" dir="ltr">
           <div className="flex items-center gap-4">
-            {/* Left Button (previous) */}
+            {/* Previous Button */}
             <button
               onClick={() => swiperRef.current?.swiper.slidePrev()}
               className={`p-2 rounded-full transition duration-300 focus:outline-none focus:ring-2 ${
@@ -138,6 +141,8 @@ export default function PostPage() {
             >
               <HiChevronLeft className="w-6 h-6" />
             </button>
+
+            {/* Swiper Carousel */}
             <Swiper
               ref={swiperRef}
               modules={[Navigation, Pagination, Keyboard, Zoom]}
@@ -161,30 +166,29 @@ export default function PostPage() {
             >
               {mediaItems.map((media, index) => (
                 <SwiperSlide key={index} className="bg-black flex justify-center items-center">
-                  <div className="relative rounded-lg w-full">
+                  <div className="relative w-full h-[500px] overflow-hidden rounded-lg">
                     {media.type === 'image' ? (
-                      <div className="swiper-zoom-container">
-                        <img
-                          src={media.url}
-                          alt={`${post.title} - Media ${index + 1}`}
-                          className="max-w-full max-h-[80vh] object-contain mx-auto"
-                          onError={(e) => {
-                            e.target.src = 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png';
-                          }}
-                        />
-                      </div>
+                      <img
+                        src={media.url}
+                        alt={`${post.title} - Media ${index + 1}`}
+                        className="absolute inset-0 w-full h-full object-cover media-item"
+                        onError={(e) => {
+                          e.target.src = 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png ';
+                        }}
+                      />
                     ) : (
                       <video
                         src={media.url}
                         controls
-                        className="max-w-full max-h-[80vh] object-contain mx-auto"
+                        className="absolute inset-0 w-full h-full object-cover media-item"
                       />
                     )}
                   </div>
                 </SwiperSlide>
               ))}
             </Swiper>
-            {/* Right Button (next) */}
+
+            {/* Next Button */}
             <button
               onClick={() => swiperRef.current?.swiper.slideNext()}
               className={`p-2 rounded-full transition duration-300 focus:outline-none focus:ring-2 ${
@@ -200,11 +204,17 @@ export default function PostPage() {
           </div>
         </div>
       )}
+
+      {/* Post Content */}
       <div
         className='p-4 max-w-2xl mx-auto w-full mt-5 post-content'
         dangerouslySetInnerHTML={{ __html: post?.content }}
       ></div>
+
+      {/* Comments Section */}
       {post && <CommentSection postId={post._id} />}
+
+      {/* Recent Posts */}
       <div className='flex flex-col items-center w-full mt-10 mb-5'>
         <h2 className='text-xl'>مقالات حديثة</h2>
         <div className='flex flex-wrap gap-5 mt-5 justify-center'>
