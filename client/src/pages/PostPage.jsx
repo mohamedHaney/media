@@ -160,28 +160,28 @@ export default function PostPage() {
               className="flex-1 rounded-lg"
             >
               {mediaItems.map((media, index) => (
-                <SwiperSlide key={index} className="bg-black flex justify-center items-center">
-                  <div className="relative rounded-lg w-full">
-                    {media.type === 'image' ? (
-                      <div className="swiper-zoom-container">
-                        <img
-                          src={media.url}
-                          alt={`${post.title} - Media ${index + 1}`}
-                          className="max-w-full max-h-[80vh] object-contain mx-auto"
-                          onError={(e) => {
-                            e.target.src = 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png';
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <video
-                        src={media.url}
-                        controls
-                        className="max-w-full max-h-[80vh] object-contain mx-auto"
-                      />
-                    )}
-                  </div>
-                </SwiperSlide>
+                <SwiperSlide key={media.id}>
+  <div className="swiper-zoom-container w-full h-[80vh] flex justify-center items-center bg-black">
+    {media.type === 'image' ? (
+      <img
+        src={media.url}
+        alt={`${post.title} - Media ${index + 1}`}
+        className="w-full h-full object-contain"
+        onError={(e) => {
+          e.target.src =
+            'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png';
+        }}
+      />
+    ) : (
+      <video
+        src={media.url}
+        controls
+        className="w-full h-full object-contain"
+      />
+    )}
+  </div>
+</SwiperSlide>
+
               ))}
             </Swiper>
             {/* Right Button (next) */}
