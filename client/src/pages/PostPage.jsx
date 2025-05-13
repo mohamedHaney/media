@@ -21,7 +21,6 @@ export default function PostPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [totalSlides, setTotalSlides] = useState(0);
 
-  // Scroll to top on component mount using useLayoutEffect
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -122,10 +121,10 @@ export default function PostPage() {
           {post?.category}
         </Button>
       </Link>
+
       {mediaItems.length > 0 && (
         <div className="w-full max-w-4xl mt-10" dir="ltr">
           <div className="flex items-center gap-4">
-            {/* Left Button (previous) */}
             <button
               onClick={() => swiperRef.current?.swiper.slidePrev()}
               className={`p-2 rounded-full transition duration-300 focus:outline-none focus:ring-2 ${
@@ -161,30 +160,27 @@ export default function PostPage() {
             >
               {mediaItems.map((media, index) => (
                 <SwiperSlide key={index} className="bg-black flex justify-center items-center">
-                  <div className="relative rounded-lg w-full">
+                  <div className="relative w-full h-full rounded-lg swiper-zoom-container">
                     {media.type === 'image' ? (
-                      <div className="swiper-zoom-container">
-                        <img
-                          src={media.url}
-                          alt={`${post.title} - Media ${index + 1}`}
-                          className="max-w-full max-h-[80vh] object-contain mx-auto"
-                          onError={(e) => {
-                            e.target.src = 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png';
-                          }}
-                        />
-                      </div>
+                      <img
+                        src={media.url}
+                        alt={`${post.title} - Media ${index + 1}`}
+                        className="w-full max-h-[80vh] object-contain rounded-lg"
+                        onError={(e) => {
+                          e.target.src = 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png';
+                        }}
+                      />
                     ) : (
                       <video
                         src={media.url}
                         controls
-                        className="max-w-full max-h-[80vh] object-contain mx-auto"
+                        className="w-full max-h-[80vh] object-contain rounded-lg"
                       />
                     )}
                   </div>
                 </SwiperSlide>
               ))}
             </Swiper>
-            {/* Right Button (next) */}
             <button
               onClick={() => swiperRef.current?.swiper.slideNext()}
               className={`p-2 rounded-full transition duration-300 focus:outline-none focus:ring-2 ${
@@ -200,11 +196,14 @@ export default function PostPage() {
           </div>
         </div>
       )}
+
       <div
         className='p-4 max-w-2xl mx-auto w-full mt-5 post-content'
         dangerouslySetInnerHTML={{ __html: post?.content }}
       ></div>
+
       {post && <CommentSection postId={post._id} />}
+
       <div className='flex flex-col items-center w-full mt-10 mb-5'>
         <h2 className='text-xl'>مقالات حديثة</h2>
         <div className='flex flex-wrap gap-5 mt-5 justify-center'>
