@@ -189,8 +189,3 @@ export default function PostCard({ post }) {
       </div>
     </Link>
   );
-<<<<<<< HEAD
-}
-=======
-}
->>>>>>> 810ddfaefae93068be14fe5dde85197e8b2ec46f
