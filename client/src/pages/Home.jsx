@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import PostCard from '../components/PostCard';
 import "./styles.css";
-import heroImage from "../media/my-img.jpeg";
+import heroImage from "../media/my-img.jpg";
 import { useSelector } from 'react-redux';
 
 export default function Home() {
