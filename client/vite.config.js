@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: "https://media-sable-kappa.vercel.app",
+        target: "https://media-six-orpin.vercel.app",
         changeOrigin: true, // Fixes some CORS issues
       },
     },
