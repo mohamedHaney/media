@@ -165,29 +165,29 @@ export default function PostPage() {
               className="flex-1 rounded-lg"
             >
               {mediaItems.map((media, index) => (
-                <SwiperSlide key={index} className="bg-black flex justify-center items-center">
-                  <div className="relative w-full h-[500px] overflow-hidden rounded-lg flex justify-center items-center bg-white">
-                    {media.type === 'image' ? (
-                      <img
-                        src={media.url}
-                        alt={`${post.title} - Media ${index + 1}`}
-                        className="max-w-full max-h-full object-contain media-item"
-                        onError={(e) => {
-                          e.target.src = 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex justify-center items-center">
-                        <video
-                          src={media.url}
-                          controls
-                          className="max-w-full max-h-full object-contain media-item"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </SwiperSlide>
-              ))}
+  <SwiperSlide key={index} className="flex justify-center items-center">
+    <div className="relative w-full h-[500px] overflow-hidden rounded-lg flex justify-center items-center bg-white dark:bg-gray-900">
+      {media.type === 'image' ? (
+        <img
+          src={media.url}
+          alt={`${post.title} - Media ${index + 1}`}
+          className="max-w-full max-h-full object-contain media-item"
+          onError={(e) => {
+            e.target.src = 'https://www.hostinger.com/tutorials/wp-content/uploads/sites/2/2021/09/how-to-write-a-blog-post.png';
+          }}
+        />
+      ) : (
+        <div className="w-full h-full flex justify-center items-center">
+          <video
+            src={media.url}
+            controls
+            className="max-w-full max-h-full object-contain media-item"
+          />
+        </div>
+      )}
+    </div>
+  </SwiperSlide>
+))}
             </Swiper>
 
             {/* Next Button */}
