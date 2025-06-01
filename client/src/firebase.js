@@ -5,12 +5,12 @@ import { initializeApp } from "firebase/app";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDpTPFGf8s0jqYeDkkC1H_rwHCYc5EhNlQ",
-  authDomain: "angular-harmony-423623-h6.firebaseapp.com",
-  projectId: "angular-harmony-423623-h6",
-  storageBucket: "angular-harmony-423623-h6.appspot.com",
-  messagingSenderId: "742182110144",
-  appId: "1:742182110144:web:c92f9d1cc6b4d46adcbe25"
+  apiKey: "AIzaSyBtCfDlMzr8jcD2GzLAJrat6LkQEvSS0IE",
+  authDomain: "my-new-project-dd553.firebaseapp.com",
+  projectId: "my-new-project-dd553",
+  storageBucket: "my-new-project-dd553.appspot.com",
+  messagingSenderId: "665806904665",
+  appId: "1:665806904665:web:e421b5b852e6d9d0bc8048"
 };
 
 // Initialize Firebase
